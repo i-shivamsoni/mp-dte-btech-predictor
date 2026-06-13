@@ -430,52 +430,60 @@
 
   /* ---- "Top colleges by branch" browsable priority view ---- */
   function initBranchRankings() {
-    var sel = document.getElementById("br-branch"), out = document.getElementById("br-list");
+    var sel = document.getElementById("br-branch"), typeSel = document.getElementById("br-type"), out = document.getElementById("br-list");
     if (!sel || !out) return;
     loadAll(["colleges", "branches", "demand_stats"]).then(function (a) {
       var cols = {}; (a[0].colleges || []).forEach(function (c) { cols[c.id] = c; });
       var blab = {}; (a[1].branches || []).forEach(function (b) { blab[b.id] = b.label; });
       var bp = (a[2] && a[2].branch_priority) || {};
+      var types = (a[0].types || []).slice().sort();
       // only branches that actually have a priority list, by label
       var bids = Object.keys(bp).filter(function (b) { return bp[b] && bp[b].length; })
         .sort(function (x, y) { return (blab[x] || x).localeCompare(blab[y] || y); });
       sel.innerHTML = bids.map(function (b) {
         return "<option value='" + esc(b) + "'>" + esc(blab[b] || b) + " (" + bp[b].length + ")</option>";
       }).join("");
-      var CAP = 50;
-      function rowHtml(pair, i) {
+      if (typeSel) {
+        typeSel.innerHTML = "<option value=''>All institute types</option>" + types.map(function (t) {
+          return "<option value='" + esc(t) + "'>" + esc(t) + "</option>";
+        }).join("");
+      }
+      function rowHtml(item) {
+        var pair = item.pair;
         var c = cols[pair[0]] || {}, t = c.type || "—";
         var govt = /government|university/i.test(t);
         return "<tr>" +
-          "<td class='num'>" + (i + 1) + "</td>" +
+          "<td class='num'>" + item.rank + "</td>" +
           "<td><span class='co-name'>" + esc(c.name || pair[0]) + "</span><span class='sub'>" + esc(c.city || "") + "</span></td>" +
           "<td><span class='pool " + (govt ? "" : "muted") + "'>" + esc(t) + "</span></td>" +
           "<td class='num'>~" + fmt(pair[1]) + "</td></tr>";
       }
-      function render(bid, expanded) {
-        var lst = bp[bid] || [], total = lst.length, capped = total > CAP && !expanded;
-        var rows = (capped ? lst.slice(0, CAP) : lst).map(rowHtml).join("");
+      function render(bid) {
+        var all = bp[bid] || [], total = all.length, type = typeSel ? typeSel.value : "";
+        var lst = all.filter(function (pair) { return !type || ((cols[pair[0]] || {}).type === type); })
+          .map(function (pair, i) { return { pair: pair, rank: i + 1 }; });
+        var matchTotal = lst.length, rows = lst.map(rowHtml).join("");
+        var filterNote = type ? " Filtered to <strong>" + esc(type) + "</strong>: <strong>" +
+          matchTotal + "</strong> of " + total + " colleges match." : "";
         out.innerHTML =
           "<p class='muted'>Colleges offering <strong>" + esc(blab[bid] || bid) + "</strong>, ordered by historical demand " +
           "(most sought-after first). &ldquo;Typical closing&rdquo; is the median open/general JEE closing rank over 2021&ndash;25 &mdash; " +
           "<strong>lower = harder to get = more in demand</strong>. This is the same order the simulator fills your choice list in." +
-          (capped ? " <strong>Showing the top " + CAP + " of " + total + ".</strong>" : "") + "</p>" +
-          "<div class='table-wrap'><table class='results'><thead><tr><th class='num'>#</th><th>College</th>" +
+          filterNote + "</p>" +
+          (matchTotal ? "<div class='table-wrap'><table class='results'><thead><tr><th class='num'>#</th><th>College</th>" +
           "<th>Type</th><th class='num'>Typical closing<br><span class='sub'>open/general</span></th></tr></thead><tbody>" +
-          rows + "</tbody></table></div>" +
-          (total > CAP ? "<div class='br-more-wrap'><button type='button' class='br-more' data-exp='" + (expanded ? "1" : "0") + "'>" +
-            (expanded ? "Show top " + CAP + " only &uarr;" : "Show all " + total + " colleges &darr;") + "</button></div>" : "");
-        var mb = out.querySelector(".br-more");
-        if (mb) mb.addEventListener("click", function () { render(bid, mb.getAttribute("data-exp") !== "1"); });
+          rows + "</tbody></table></div>" : "<p class='empty'>No colleges match this branch and institute type.</p>");
       }
-      var want = qsParams().b;
+      function syncUrl() { setParams({ b: sel.value, type: typeSel && typeSel.value }); }
+      var params = qsParams(), want = params.b;
       if (want && bids.indexOf(want) > -1) sel.value = want; else if (bids.indexOf("cse") > -1) sel.value = "cse";
-      render(sel.value, false);
+      if (typeSel && params.type && types.indexOf(params.type) > -1) typeSel.value = params.type;
+      render(sel.value);
       sel.addEventListener("change", function () {
-        render(sel.value, false);
-        var u = new URLSearchParams(location.search); u.set("b", sel.value);
-        history.replaceState(null, "", location.pathname + "?" + u);
+        render(sel.value);
+        syncUrl();
       });
+      if (typeSel) typeSel.addEventListener("change", function () { render(sel.value); syncUrl(); });
     }).catch(function (e) { showError(out, e); });
   }
 
