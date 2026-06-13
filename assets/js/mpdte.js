@@ -337,11 +337,27 @@
       });
     }
 
-    var counter = { v: 0 };
-    SECURING_ORDER.forEach(function (b) {
-      var rows = reachable.filter(function (r) { return r.bucket === b; });
-      if (rows.length) container.appendChild(simRoundSection(b, rows, counter));
-    });
+    // round-grouped detail tables — show the 50 most sought-after by default (rows are
+    // demand-ordered), with a toggle to reveal the full list so it stays navigable.
+    var SIM_CAP = 50;
+    var rounds = el("div", "sim-rounds");
+    container.appendChild(rounds);
+    function renderRounds(showAll) {
+      rounds.innerHTML = "";
+      var shown = showAll ? reachable : reachable.slice(0, SIM_CAP), counter = { v: 0 };
+      SECURING_ORDER.forEach(function (b) {
+        var rows = shown.filter(function (r) { return r.bucket === b; });
+        if (rows.length) rounds.appendChild(simRoundSection(b, rows, counter));
+      });
+      if (reachable.length > SIM_CAP) {
+        var wrap = el("div", "br-more-wrap"), btn = el("button", "br-more"); btn.type = "button";
+        btn.innerHTML = showAll ? "Show top " + SIM_CAP + " only &uarr;"
+          : "Show all " + reachable.length + " options &darr;";
+        btn.addEventListener("click", function () { renderRounds(!showAll); });
+        wrap.appendChild(btn); rounds.appendChild(wrap);
+      }
+    }
+    renderRounds(false);
     if (unreachable.length) {
       var det = el("details", "unreachable");
       det.appendChild(el("summary", null, "Show " + unreachable.length + " out-of-reach seat-pools"));
