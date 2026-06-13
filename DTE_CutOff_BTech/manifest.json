@@ -1,0 +1,1035 @@
+{
+ "course": "BACHELOR OF TECHNOLOGY",
+ "source": "https://dte.mponline.gov.in CutOffList.aspx",
+ "files": 53,
+ "total_rows": 65600,
+ "documents": [
+  {
+   "source_pdf": "DTE_CutOff_BTech/2017/BE_FU_OPCL_2017.pdf",
+   "year": 2017,
+   "round_title": "OPENING AND CLOSING RANK (TFW AND GENERAL POOL FIRST ROUND UPGRADE)  - 2017",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "jk_residents",
+    "jk_migrants",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1536
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2017/BE_FW_GENREL_SECOND_ROUND_OPENING_CLOSING_2017.pdf",
+   "year": 2017,
+   "round_title": "OPENING AND CLOSING RANK (TFW AND GENERAL POOL SECOND ROUND)  - 2017",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "total_allotted"
+   ],
+   "row_count": 1850
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2017/BE_INTR_OPCL_2017.pdf",
+   "year": 2017,
+   "round_title": "OPENING AND CLOSING RANK (INTERMEDIATE ROUND)  - 2017",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 829
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2017/BE_IS_ROUND_OPCL_2017.pdf",
+   "year": 2017,
+   "round_title": "INTERNAL BRANCH CHANGE STATUS (OPENING AND CLOSING RANK) 2017",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "jk_residents",
+    "jk_migrants",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 440
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2017/BE_PT_FR_OPCL_2017.pdf",
+   "year": 2017,
+   "round_title": "OPENING AND CLOSING BE (PART TIME) FIRST ROUND - 2017",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "jk_residents",
+    "jk_migrants",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 3
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2017/BE_QUA_ROUND_OPCL_2017.pdf",
+   "year": 2017,
+   "round_title": "OPENING AND CLOSING RANK (QUALIFYING EXAM BASED ROUND)  - 2017",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 568
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2017/BE_RF_OPCL_2017.pdf",
+   "year": 2017,
+   "round_title": "OPENING AND CLOSING RANK (TFW AND GENERAL POOL FIRST ROUND)  - 2017",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "jk_residents",
+    "jk_migrants",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 2501
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2017/BE_SPR_JEE_OPCL_2017.pdf",
+   "year": 2017,
+   "round_title": "OPENING AND CLOSING RANK (CENTRALIZED SPECIAL ROUND -JEE MAINS)- 2017",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "jk_residents",
+    "jk_migrants",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 83
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2017/BE_SPR_QUA_OPCL_2017.pdf",
+   "year": 2017,
+   "round_title": "OPENING AND CLOSING RANK (CENTRALIZED SPECIAL ROUND -BASED ON QUALIFYING EXAM)- 2017",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "jk_residents",
+    "jk_migrants",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 18
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2018/BEFR_UP_2018.pdf",
+   "year": 2018,
+   "round_title": "OPENING AND CLOSING RANK (TFW AND GENERAL POOL FIRST ROUND UPGRADE)  - 2018",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "jk_migrants",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1011
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2018/BE_OP_CL_2018.pdf",
+   "year": 2018,
+   "round_title": "OPENING AND CLOSING RANK (T.F.W. AND GENERAL POOL FIRST ROUND) - 2018",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "jk_migrants",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 2226
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2018/BE_OP_CL_BR_CHANGE_2018.pdf",
+   "year": 2018,
+   "round_title": "OPENING AND CLOSSING B.E. INTERNAL BRANCH CHANGE - 2018",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "branch",
+    "exam_type",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 355
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2018/BE_OP_CL_SR_2018.pdf",
+   "year": 2018,
+   "round_title": "OPENING AND CLOSING RANK (T.F.W. AND GENERAL POOL SECOND ROUND) - 2018",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "jk_residents",
+    "jk_migrants",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1468
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2018/BE_OP_CL_TR_2018.pdf",
+   "year": 2018,
+   "round_title": "OPENING AND CLOSING RANK (QUALIFYING EXAM BASED) - 2018",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "jk_residents",
+    "jk_migrants",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 571
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2018/OPCL_BEFR_2ND_UPGRADE_2018.pdf",
+   "year": 2018,
+   "round_title": "OPENING AND CLOSING RANK (TFW AND GENERAL POOL FIRST ROUND UPGRADE-II)  - 2018",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 625
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2019/BE_2UPGR_FR_OPCL_2019_20.pdf",
+   "year": 2019,
+   "round_title": "OPENING AND CLOSING RANK FIRST ROUND SECOND UPGRADE  2019",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 957
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2019/BE_FR_OPCL_2019.pdf",
+   "year": 2019,
+   "round_title": "OPENING AND CLOSING RANK [GENERAL POOL AND T.F.W. (BASED ON JEE MAIN EXAM)] 2019",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 2397
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2019/BE_QR_OPCL_2019.pdf",
+   "year": 2019,
+   "round_title": "OPENING AND CLOSING RANK QUALIFYING ROUND 2019",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 529
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2019/BE_SR_OPCL_2019.pdf",
+   "year": 2019,
+   "round_title": "OPENING AND CLOSING RANK SECOND ROUND 2019",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1555
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2019/BE_UPGR_FR_OPCL_2019.pdf",
+   "year": 2019,
+   "round_title": "OPENING AND CLOSING RANK [GENERAL POOL AND T.F.W. FIRST ROUND UPGRADE [BASED ON JEE MAIN EXAM] 2019",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1370
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2019/OPCL_BE_INTSL_2019.pdf",
+   "year": 2019,
+   "round_title": "OPENING AND CLOSING RANK INTERNAL BRANCH CHANGE 2019",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "exam_type",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 474
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2020/OPCL_B.TECH_FR.pdf",
+   "year": 2020,
+   "round_title": "OPENING AND CLOSING RANK FIRST ROUND 2020",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 2290
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2020/OPCL_B.TECH_QR.pdf",
+   "year": 2020,
+   "round_title": "OPENING AND CLOSING RANK QUALIFYING EXAM BASED ROUND 2020",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 573
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2020/OPCL_B.TECH_SP_ENT.pdf",
+   "year": 2020,
+   "round_title": "OPENING AND CLOSING RANK SPECIAL ROUND ONLY FOR TFW SEATS 2020",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 42
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2020/OPCL_B.TECH_SP_QUAL.pdf",
+   "year": 2020,
+   "round_title": "OPENING AND CLOSING RANK SPECIAL ROUND ONLY FOR TFW QUALIFYING EXAM BASED 2020",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 7
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2020/OPCL_B.TECH_SR_COMPRESSED.pdf",
+   "year": 2020,
+   "round_title": "OPENING AND CLOSING RANK SECOND ROUND 2020",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1664
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2020/OPCL_B.TECH_UR.pdf",
+   "year": 2020,
+   "round_title": "OPENING AND CLOSING RANK TFW AND GENERAL POOL FIRST ROUND UPGRADE  2020",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1286
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2020/OPCL_BE_INTSL_MIN.pdf",
+   "year": 2020,
+   "round_title": "OPENING AND CLOSING RANK INTERNAL BRANCH CHANGE ROUND 2020",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "exam_type",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted",
+    "remarks"
+   ],
+   "row_count": 865
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2021/OPCL_BTECH_FR_UPDATED.pdf",
+   "year": 2021,
+   "round_title": "OPENING AND CLOSING FIRST ROUND 2021",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 2137
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2021/OPCL_BTECH_FR_UPGRADE_2021.pdf",
+   "year": 2021,
+   "round_title": "OPENING AND CLOSING RANK TFW AND GENERAL POOL FIRST ROUND UPGRADE 2021",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1104
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2021/OPCL_BTECH_INTSL_2021.pdf",
+   "year": 2021,
+   "round_title": "OPENING AND CLOSING RANK INTERNAL BRANCH CHANGE 2021",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "exam_type",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted",
+    "remarks"
+   ],
+   "row_count": 982
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2021/OPCL_BTECH_QR_2021.pdf",
+   "year": 2021,
+   "round_title": "OPENING AND CLOSING RANK QUALIFYING EXAM BASED ROUND 2021",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 689
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2021/OPCL_BTECH_SR_2021.pdf",
+   "year": 2021,
+   "round_title": "OPENING AND CLOSING RANK SECOND ROUND 2021",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1610
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2022/OPCL_B.TECH_FR.pdf",
+   "year": 2022,
+   "round_title": "OPENING AND CLOSING FIRST ROUND 2022",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 2486
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2022/OPCL_BE_FU.pdf",
+   "year": 2022,
+   "round_title": "OPENING AND CLOSING RANK TFW AND GENERAL POOL FIRST ROUND UPGRADE 2022",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1310
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2022/OPCL_BE_QR.pdf",
+   "year": 2022,
+   "round_title": "OPENING AND CLOSING RANK QUALIFYING EXAM BASED ROUND 2022",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 714
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2022/OPCL_BE_SL.pdf",
+   "year": 2022,
+   "round_title": "OPENING AND CLOSING RANK INTERNAL BRANCH CHANGE 2022",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "exam_type",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted",
+    "remarks"
+   ],
+   "row_count": 1140
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2022/OPCL_BE_SR.pdf",
+   "year": 2022,
+   "round_title": "OPENING AND CLOSING RANK SECOND ROUND 2022",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1696
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2023/BEBTECH_OPCL_FR_2023.pdf",
+   "year": 2023,
+   "round_title": "OPENING AND CLOSING FIRST ROUND 2023",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 2393
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2023/BEBTECH_OPCL_FU_2023.pdf",
+   "year": 2023,
+   "round_title": "OPENING AND CLOSING RANK TFW AND GENERAL POOL FIRST ROUND UPGRADE 2023",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1277
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2023/BE__OPCL_QR_2023.pdf",
+   "year": 2023,
+   "round_title": "OPENING AND CLOSING RANK QUALIFYING EXAM BASED ROUND 2023",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 787
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2023/OPCL_BE_SL_2023.pdf",
+   "year": 2023,
+   "round_title": "OPENING AND CLOSING RANK INTERNAL BRANCH CHANGE 2023",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "exam_type",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted",
+    "remarks"
+   ],
+   "row_count": 1169
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2023/OPCL_BE_SR_2023.pdf",
+   "year": 2023,
+   "round_title": "OPENING AND CLOSING RANK SECOND ROUND 2023",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1574
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2024/BE_FU_2024.pdf",
+   "year": 2024,
+   "round_title": "OPENING AND CLOSING RANK TFW AND GENERAL POOL FIRST ROUND UPGRADE 2024",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1113
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2024/BE_RF_2024.pdf",
+   "year": 2024,
+   "round_title": "OPENING AND CLOSING FIRST ROUND 2024",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1995
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2024/BE_SL_2024.pdf",
+   "year": 2024,
+   "round_title": "OPENING AND CLOSING RANK INTERNAL BRANCH CHANGE 2024",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "exam_type",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted",
+    "remarks"
+   ],
+   "row_count": 1016
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2024/BE_SR_2024.pdf",
+   "year": 2024,
+   "round_title": "OPENING AND CLOSING RANK SECOND ROUND 2024",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1259
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2024/BE_TR_2024.pdf",
+   "year": 2024,
+   "round_title": "OPENING AND CLOSING RANK QUALIFYING EXAM BASED ROUND 2024",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 813
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2025/BE_FU_2025.pdf",
+   "year": 2025,
+   "round_title": "OPENING AND CLOSING RANK TFW AND GENERAL POOL FIRST ROUND UPGRADE 2025",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1125
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2025/BE_RF_2025.pdf",
+   "year": 2025,
+   "round_title": "OPENING AND CLOSING FIRST ROUND 2025",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 1936
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2025/BE_SL_2025.pdf",
+   "year": 2025,
+   "round_title": "OPENING AND CLOSING RANK INTERNAL BRANCH CHANGE 2025",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "exam_type",
+    "opening_rank",
+    "closing_rank",
+    "eligible_category",
+    "allotted_category",
+    "domicile",
+    "total_allotted",
+    "remarks"
+   ],
+   "row_count": 1699
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2025/BE_SR_2025.pdf",
+   "year": 2025,
+   "round_title": "OPENING AND CLOSING RANK SECOND ROUND 2025",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "eligible_category",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 2794
+  },
+  {
+   "source_pdf": "DTE_CutOff_BTech/2025/BE_TR_2025.pdf",
+   "year": 2025,
+   "round_title": "OPENING AND CLOSING RANK QUALIFYING EXAM BASED ROUND 2025",
+   "course": "BACHELOR OF TECHNOLOGY",
+   "columns": [
+    "sno",
+    "institute_name",
+    "institute_type",
+    "fw",
+    "branch",
+    "national_player",
+    "opening_rank",
+    "closing_rank",
+    "eligible_category",
+    "allotted_category",
+    "domicile",
+    "total_allotted"
+   ],
+   "row_count": 2689
+  }
+ ]
+}

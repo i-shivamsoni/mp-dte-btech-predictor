@@ -1,0 +1,45 @@
+---
+page_id: accuracy
+title: Model Accuracy
+subtitle: How well does this predictor actually do? We backtested it against 2018–2025.
+permalink: /model-accuracy/
+---
+<div class="prose">
+  <p>
+    This tool is a <strong>historical comparison, not a guarantee</strong>. To check how trustworthy it
+    is, we ran a <strong>walk-forward backtest</strong>: for each past year we predicted using
+    <em>only the previous year's</em> closing ranks, then compared against that year's
+    <em>actual</em> admission cut-offs (2018–2025). No data from the year being tested was used to
+    predict it. The honest headline:
+  </p>
+  <ul>
+    <li>The cut-off estimate lands <strong>within ±20% of reality about half the time</strong>
+      (JEE 49.8%, 12th-% 54.6%).</li>
+    <li>The colour bands are <strong>odds, not promises</strong> — and they describe admissibility by
+      the <em>end</em> of all counselling rounds; the early-round reality is tighter (both shown below).</li>
+    <li>Accuracy drops sharply in years when cut-offs shift suddenly.</li>
+  </ul>
+</div>
+
+<div id="accuracy" class="accuracy-area" aria-live="polite">
+  <p class="muted">Loading accuracy data…</p>
+</div>
+
+<div class="prose">
+  <h2>Honest limitations</h2>
+  <ul>
+    <li><strong>Cut-off drift</strong> is the main weakness — the model assumes next year ≈ last year,
+      so a sudden scale shift (e.g. the +62% jump in 12th-% merit ranks in 2021, or ~+30% JEE inflation
+      in 2024) makes it under- or over-shoot.</li>
+    <li><strong>End-of-counselling vs round 1.</strong> &ldquo;Admitted&rdquo; above is judged against the
+      most lenient closing rank across all rounds. If you must commit in an early round, the real cut-off
+      is tighter — which is why the JEE &ldquo;round 1&rdquo; column is much lower than &ldquo;by end of
+      rounds&rdquo;. (The 12th-% round is a single round, so the two are close.)</li>
+    <li><strong>Coverage.</strong> ~78% of next year's individual seat pools existed the prior year and so
+      can be predicted; because the rest are tiny/new, that's <strong>~91% by seats</strong>. Brand-new
+      branches or colleges can't be predicted at all.</li>
+    <li>A measured improvement (queued): for the <strong>12th-% route, averaging the last two years</strong>
+      cuts the error ~27%; the JEE route is best left on the most recent year (its cut-offs drift upward).</li>
+  </ul>
+</div>
+{% include caveat-banner.html %}

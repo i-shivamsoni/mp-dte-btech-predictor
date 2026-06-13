@@ -1,0 +1,35 @@
+title: MP-DTE B.Tech College Predictor
+description: >-
+  Find which MP-DTE B.Tech colleges and branches you can get on your JEE rank or
+  12th-class percentage, and see which branches and colleges are most in demand.
+  Built from official 2017-2025 counselling cut-offs and the 2026-27 seat matrix.
+baseurl: ""        # for a GitHub project page set to "/<repo-name>"
+url: ""
+lang: en
+
+markdown: kramdown
+permalink: pretty
+sass:
+  style: compressed
+
+# Only the webapp ships; build inputs, scripts and docs are kept out of _site.
+exclude:
+  - DTE_CutOff_BTech/
+  - DTE_Intake_BTech/
+  - scripts/
+  - __pycache__/
+  - vendor/
+  - .github/
+  - Gemfile
+  - Gemfile.lock
+  - "*.pdf"
+  - "*.py"
+  - "*.sh"
+  - "*.md"
+
+include:
+  - assets
+
+defaults:
+  - scope: { path: "" }
+    values: { layout: "default" }

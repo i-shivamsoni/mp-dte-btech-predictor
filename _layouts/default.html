@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="{{ site.lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if page.title %}{{ page.title }} · {% endif %}{{ site.title }}</title>
+  <meta name="description" content="{{ page.description | default: site.description }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
+  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+  {% seo %}
+  <script>window.BASEURL = "{{ site.baseurl }}";</script>
+</head>
+<body data-page="{{ page.page_id }}">
+  {% include nav.html %}
+  <main class="container">
+    {% if page.show_title != false and page.title %}
+      <h1 class="page-title">{{ page.title }}</h1>
+      {% if page.subtitle %}<p class="page-subtitle">{{ page.subtitle }}</p>{% endif %}
+    {% endif %}
+    {{ content }}
+  </main>
+  {% include footer.html %}
+  <script src="{{ '/assets/js/mpdte.js' | relative_url }}"></script>
+  {% if page.page_id == "demand" %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="{{ '/assets/js/dashboard.js' | relative_url }}"></script>
+  {% endif %}
+</body>
+</html>

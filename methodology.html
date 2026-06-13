@@ -1,0 +1,80 @@
+---
+page_id: methodology
+title: Methodology
+subtitle: How the predictor works, what the data is, and what to watch out for.
+permalink: /methodology/
+---
+<div class="prose">
+
+<h2>How the prediction works (no machine learning)</h2>
+<p>
+  This is a <strong>deterministic cut-off lookup</strong>, the same approach reputable JEE/JoSAA
+  predictors use &mdash; not a machine-learning model. Every counselling round publishes a
+  <strong>closing rank</strong>: the last rank that actually got a seat in each
+  college&times;branch&times;category pool. We simply compare your rank to those published closing
+  ranks. If your rank is at or below a seat&rsquo;s closing rank, that seat was historically reachable.
+</p>
+<p>Each result is labelled by how much cushion you have:</p>
+<ul>
+  <li><span class="tag tag-safe">Safe</span> your rank is comfortably below the closing rank (&le; 80%).</li>
+  <li><span class="tag tag-moderate">Moderate</span> your rank is near the closing rank.</li>
+  <li><span class="tag tag-reach">Reach</span> your rank is slightly above (within ~15%).</li>
+  <li><span class="tag tag-unreachable">Unreachable</span> well above last year&rsquo;s closing rank.</li>
+</ul>
+<p>
+  For each college&times;branch we use the <strong>most recent year</strong> available and the most
+  lenient (last) round in that year as the basis. We never mix the two rank systems below.
+</p>
+
+<h2>Two separate rank universes</h2>
+<table class="results">
+  <thead><tr><th>Round</th><th>Track</th><th>Rank you compare</th></tr></thead>
+  <tbody>
+    <tr><td>First Round, First-Round Upgrade, Second Round</td><td>JEE Main</td><td>JEE Common Rank (up to ~1.5&nbsp;million)</td></tr>
+    <tr><td>Qualifying Exam Based Round</td><td>Class-XII %</td><td>12th-% merit rank (up to ~14,500)</td></tr>
+  </tbody>
+</table>
+<p>
+  The 12th-% predictor first converts your percentage into an estimated qualifying-exam
+  <em>merit rank</em> using that year&rsquo;s published merit list, then compares it to the
+  Qualifying Exam Based Round closing ranks. The &ldquo;Second Round&rdquo; is a JEE round &mdash;
+  it is <strong>not</strong> the percentage round.
+</p>
+
+<h2>Data sources &amp; coverage</h2>
+<ul>
+  <li><strong>Cut-offs:</strong> 65,600 rows from official MP-DTE opening/closing-rank PDFs, 2017&ndash;2025.</li>
+  <li><strong>Seat matrix:</strong> the 2026&ndash;27 &ldquo;Tentative List of Institutes and Intake&rdquo; (674 college&times;branch rows, 49,391 seats).</li>
+  <li><strong>Qualifying-exam merit lists:</strong> 2019, 2022-23, 2024-25 (the %&rarr;rank bridge). Other years are being sourced and will be added later.</li>
+</ul>
+
+<h2>Category, gender &amp; domicile</h2>
+<p>
+  Seat pools are written as <code>SOCIAL / SPECIAL / GENDER</code> (e.g. <code>UR/X/OP</code>,
+  <code>OBC/X/F</code>), with a separate home-state field. The predictor uses three inputs:
+</p>
+<ul>
+  <li><strong>Category</strong> (social field: UR, OBC, SC, ST, EWS, FW). If you pick a reserved
+    category you also see general (open-pool) seats, each row labelled with the pool it matched.
+    Reservation appears in the JEE rounds; the Qualifying Exam Based Round is general + EWS +
+    fee-waiver only.</li>
+  <li><strong>Gender</strong> &mdash; female candidates are eligible for both the open pool and the
+    female-only pool (<code>/F</code>), which usually closes at a <em>more lenient</em> rank;
+    matched female-pool seats are tagged <span class="pool pool-f">Female</span>.</li>
+  <li><strong>Domicile</strong> &mdash; this matters a lot. MP home-state seats (tagged
+    <span class="pool muted">MP</span>) close at far higher (easier) ranks than the All-India
+    pool (tagged <span class="pool muted">AI</span>). Non-MP candidates can only take AI / open
+    seats, so selecting &ldquo;Other state&rdquo; removes the MP-only seats &mdash; including most
+    OBC/SC/ST reservation, which requires MP domicile.</li>
+</ul>
+
+<h2>Important limitations</h2>
+<ul>
+  <li>Cut-offs <strong>drift every year</strong>; a prediction is an estimate, not a guarantee.</li>
+  <li><strong>Non-MP-domicile</strong> eligibility for these seats is not fully confirmed by this data &mdash; selecting &ldquo;Other state&rdquo; drops MP home-state-only seats, but always verify with DTE.</li>
+  <li>Fee-waiver (TFW) seats are <strong>income-tested</strong>; the seat count shows availability, not your eligibility.</li>
+  <li>~5% of historical cut-off colleges are defunct and have no 2026-27 seat data; they show &ldquo;n/a&rdquo; seats.</li>
+  <li>Internal Branch Change data is excluded from prediction (it&rsquo;s a post-admission swap) and used only for the demand dashboard.</li>
+</ul>
+
+</div>

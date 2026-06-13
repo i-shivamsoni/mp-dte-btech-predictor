@@ -1,0 +1,59 @@
+---
+page_id: qe
+title: 12th % Predictor
+subtitle: Qualifying Exam Based Round — ranked on your Class-XII percentage.
+permalink: /percentage-predictor/
+---
+<div class="banner banner-info">
+  <strong>Limited years:</strong> the percentage route currently covers
+  <strong>2019, 2022-23 and 2024-25</strong> (the years we hold the qualifying-exam merit lists for).
+  The remaining years are not yet available and will be added later. Your estimate uses
+  the closest available year.
+</div>
+
+<form id="predict-form" class="predict-form" autocomplete="off">
+  <div class="primary-input">
+    <div class="f-group">
+      <label for="in-pct">Your Class-XII percentage</label>
+      <input type="number" id="in-pct" min="0" max="100" step="0.1" placeholder="e.g. 75" required>
+    </div>
+    <div class="f-group">
+      <label for="f-year">Reference year</label>
+      <select id="f-year"></select>
+    </div>
+    <div class="f-group">
+      <label for="in-cat">Category</label>
+      <select id="in-cat">
+        <option value="UR">UR / General</option>
+        <option value="EWS">EWS</option>
+        <option value="FW">Fee Waiver (TFW)</option>
+      </select>
+    </div>
+    <div class="f-group">
+      <label for="in-gender">Gender</label>
+      <select id="in-gender">
+        <option value="M">Male</option>
+        <option value="F">Female</option>
+      </select>
+    </div>
+    <div class="f-group">
+      <label for="in-dom">Domicile</label>
+      <select id="in-dom">
+        <option value="mp">MP (domicile)</option>
+        <option value="other">Other state</option>
+      </select>
+    </div>
+    <button type="submit" class="btn-primary">Show my colleges</button>
+  </div>
+  <p class="hint muted">
+    Note: the Qualifying Exam Based Round uses general + EWS + fee-waiver pools only
+    (no OBC/SC/ST reservation in this round).
+  </p>
+  <details class="filters-wrap" open>
+    <summary>Filters</summary>
+    <div id="filters" class="filters"></div>
+  </details>
+</form>
+
+{% include caveat-banner.html %}
+<div id="results" class="results-area" aria-live="polite"></div>

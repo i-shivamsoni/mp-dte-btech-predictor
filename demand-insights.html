@@ -1,0 +1,41 @@
+---
+page_id: demand
+title: Demand Insights
+subtitle: Which branches and colleges are most in demand — from 2017-2025 counselling data.
+permalink: /demand-insights/
+---
+{% include caveat-banner.html %}
+
+<div id="demand-error"></div>
+
+<section class="dash-block">
+  <h2>Most in-demand branches</h2>
+  <p class="muted">Ranked by how competitive they are in {{ "the latest year" }} — lower median
+    closing rank = harder to get = more in demand (JEE track).</p>
+  <div class="chart-box"><canvas id="chart-branches" height="420"></canvas></div>
+</section>
+
+<section class="dash-block">
+  <h2>Most in-demand colleges</h2>
+  <p class="muted">Most competitive colleges by median CSE/overall closing rank (latest year).</p>
+  <div id="table-colleges" class="table-wrap"></div>
+</section>
+
+<section class="dash-block">
+  <h2>Demand trend (2017&ndash;2025)</h2>
+  <p class="muted">Median closing rank per year for the top branches. Falling line = getting more competitive.</p>
+  <div class="chart-box"><canvas id="chart-trend" height="380"></canvas></div>
+</section>
+
+<section class="dash-block">
+  <h2>Seats by city</h2>
+  <p class="muted">Where the seats are (allotted, latest year).</p>
+  <div class="chart-box"><canvas id="chart-city" height="360"></canvas></div>
+</section>
+
+<section class="dash-block">
+  <h2>Branch switching &mdash; revealed preference</h2>
+  <p class="muted">Branches students move <em>into</em> via the Internal Branch Change round
+    (a signal of what&rsquo;s actually wanted, after admission).</p>
+  <div class="chart-box"><canvas id="chart-movement" height="360"></canvas></div>
+</section>

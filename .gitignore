@@ -1,0 +1,13 @@
+# build output & dependencies
+_site/
+vendor/
+.bundle/
+.jekyll-cache/
+.jekyll-metadata
+__pycache__/
+*.pyc
+*.log
+
+# large raw source files not needed to build the site
+*.pdf
+DTE_CutOff_BTech/20*/
