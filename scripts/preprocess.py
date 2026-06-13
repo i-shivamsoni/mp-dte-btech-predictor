@@ -199,6 +199,7 @@ def norm_name(s):
     s = re.sub(r"\(\s*\d{4}\s*\)", " ", s)          # drop "(1996)" establishment year
     s = re.sub(r"[\-\s]*f\.?\s*w\.?", " ", s)        # drop "-F.W." / "F.W." markers
     s = re.sub(r"[^a-z0-9]+", " ", s)               # punctuation -> space
+    s = re.sub(r"\bdeemed( to be)? university\b", " ", s)   # drop "(Deemed University)" qualifier
     return re.sub(r"\s+", " ", s).strip()
 
 def extract_city(name):
@@ -435,6 +436,31 @@ def main():
         else:
             unmatched_rows += 1
 
+    # de-dupe split colleges: a synthetic (historical) entry whose normalized name is a leading
+    # prefix of a real intake college (e.g. a cut-off name missing the trailing city) is the SAME
+    # college -> remap its rows to the real id and drop the synthetic, so it isn't listed twice.
+    real_norm = {norm_name(c["name"]): cid for cid, c in colleges.items() if not c.get("historical")}
+    remap = {}
+    for hid, c in list(colleges.items()):
+        if not c.get("historical"):
+            continue
+        hn = norm_name(c["name"]); ht = hn.split()
+        tgt = real_norm.get(hn)
+        if not tgt and len(ht) >= 4:
+            for rn, rid in real_norm.items():
+                rt = rn.split()
+                if len(rt) >= 4 and rt[:len(ht)] == ht:    # historical name is a prefix of the real name
+                    tgt = rid; break
+        if tgt and tgt != hid:
+            remap[hid] = tgt
+    if remap:
+        for r in cutoffs:
+            if r["_cid"] in remap:
+                r["_cid"] = remap[r["_cid"]]
+        for hid in remap:
+            colleges.pop(hid, None)
+        print(f"de-duped {len(remap)} split college entries: {', '.join(sorted(remap))}")
+
     # colleges that appear in cut-offs but not in 2026-27 intake -> historical entries
     seen_ids = {r["_cid"] for r in cutoffs if r["_cid"]}
     # (intake colleges already in `colleges`; historical-only handled in UI via null seats)
@@ -548,6 +574,38 @@ def main():
          for cid, v in by_college.items() if v["closings"]],
         key=lambda x: (x["median"] is None, x["median"]))
 
+    # ---- branch-wise priority ("demand list"): per branch, colleges ranked by demand ----
+    # Pure revealed preference: WITHIN each branch, the more competitive the OPEN/general seat
+    # (lower closing rank), the higher the priority. Score = median UR/OP closing per year, then
+    # median across the last 5 years (robust to 1-seat outliers / year noise). This is PER BRANCH
+    # (a college can top CSE yet sit mid-pack for Mech) — students choose by branch, so one whole-
+    # college ranking would mislead. No institute-type adjustment: the data alone decides the order.
+    DEMAND_YEARS = set(range(2021, 2026))
+    cb_year = collections.defaultdict(lambda: collections.defaultdict(
+        lambda: {"ur": [], "all": []}))               # (cid,bid) -> year -> {ur:[], all:[]}
+    for r in cutoffs:
+        if r["_uni"] != "jee" or r["year"] not in DEMAND_YEARS or not r["_cid"]:
+            continue
+        cl = to_int(r.get("closing_rank"))
+        if cl is None:
+            continue
+        slot = cb_year[(r["_cid"], r["_bid"])][r["year"]]
+        slot["all"].append(cl)
+        if (r.get("_social") or "UR") == "UR" and (r.get("_gender") or "OP") == "OP" and r.get("fw") != "Y":
+            slot["ur"].append(cl)                     # open/general seat = cleanest demand signal
+    cb_score = {}
+    for (cid, bid), yd in cb_year.items():
+        yr_meds = [statistics.median(s["ur"] or s["all"]) for s in yd.values() if (s["ur"] or s["all"])]
+        if yr_meds:
+            cb_score[(cid, bid)] = int(statistics.median(yr_meds))
+    branch_priority = {}                              # branchId -> [[collegeId, demandClosing], ...] best-first
+    by_branch_cb = collections.defaultdict(list)
+    for (cid, bid), sc in cb_score.items():
+        by_branch_cb[bid].append((cid, sc))
+    for bid, lst in by_branch_cb.items():
+        lst.sort(key=lambda x: (x[1], x[0]))          # demand score asc (pure data); id = stable tiebreak
+        branch_priority[bid] = [[cid, sc] for cid, sc in lst]
+
     # branch movement (revealed preference) from Internal Branch Change rows
     mv = collections.defaultdict(lambda: {"into": 0, "out": 0})
     for r in cutoffs:
@@ -566,6 +624,7 @@ def main():
         "trend": {b: trend[b] for b in [d["b"] for d in demand_branches[:10]]},
         "by_city": [{"city": c, "seats": n} for c, n in by_city.most_common()],
         "branch_movement": movement,
+        "branch_priority": branch_priority,      # branchId -> [[collegeId, demandClosing], ...] best-first
     }
 
     # ---- 6. write assets ----

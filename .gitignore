@@ -11,3 +11,4 @@ __pycache__/
 # large raw source files not needed to build the site
 *.pdf
 DTE_CutOff_BTech/20*/
+WEBAPP_CONTEXT.md

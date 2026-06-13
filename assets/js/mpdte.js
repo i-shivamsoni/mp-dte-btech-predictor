@@ -139,6 +139,7 @@
         bucket: asg.bucket || "out", outOfReach: asg.outOfReach, closing: asg.closing, opening: asg.opening,
         viaUpgrade: asg.viaUpgrade, seats: (ctx.intake[p.cid] || {})[p.bid] || null,
         bestClosing: best != null ? best : Infinity, tfw: p.cat === "FW",
+        prefRank: (ctx.pref && ctx.pref[p.cid + "|" + p.bid]) || 1e9,   // historical desirability (1 = most sought-after)
         pool: (p.cat === "FW") ? "tfw" : (p.gen === "F" ? "female" : ((p.cat === opts.social && opts.social !== "UR") ? "reserved" : "general")),
         poolRank: poolRank(p.cat, p.gen), historical: !!col.historical,
         band: bandFor(opts.rank, asg.closing, asg.bucket, cl.ok, cl.tot),
@@ -149,28 +150,17 @@
 
   function rankChoices(arr, opts) {
     opts = opts || {};
-    if (opts.groupByCollegeBranch) {
-      var gbest = {};
-      arr.forEach(function (u) { var g = u.cid + "|" + u.bid, c = u.outOfReach ? Infinity : u.bestClosing; if (gbest[g] == null || c < gbest[g]) gbest[g] = c; });
-      arr.sort(function (a, b) {
-        if (a.outOfReach !== b.outOfReach) return a.outOfReach ? 1 : -1;
-        var ga = a.cid + "|" + a.bid, gb = b.cid + "|" + b.bid;
-        if (gbest[ga] !== gbest[gb]) return gbest[ga] - gbest[gb];
-        if (ga !== gb) return ga < gb ? -1 : 1;
-        return a.poolRank - b.poolRank;
-      });
-    } else {
-      arr.sort(function (a, b) {
-        if (a.outOfReach !== b.outOfReach) return a.outOfReach ? 1 : -1;
-        var BO = { r1: 0, r1u: 1, r2: 2 };
-        var ar = BO[a.bucket] != null ? BO[a.bucket] : 3, br = BO[b.bucket] != null ? BO[b.bucket] : 3;
-        if (ar !== br) return ar - br;                 // Round 1 < Upgrade < Round 2
-        if (a.bestClosing !== b.bestClosing) return a.bestClosing - b.bestClosing;
-        if (a.poolRank !== b.poolRank) return a.poolRank - b.poolRank;
-        if (a.college !== b.college) return a.college < b.college ? -1 : 1;
-        return a.branch < b.branch ? -1 : (a.branch > b.branch ? 1 : 0);
-      });
-    }
+    // Primary order = historical desirability (a counselling list must be PREFERENCE-ordered:
+    // the portal awards the best seat you qualify for, so the most sought-after option goes first
+    // regardless of how reachable it is). prefRank is per (college,branch), so a college's pools
+    // (FW / general / female) share a rank and naturally cluster, FW first via poolRank.
+    arr.sort(function (a, b) {
+      if (a.prefRank !== b.prefRank) return a.prefRank - b.prefRank;     // most sought-after first
+      if (a.bestClosing !== b.bestClosing) return a.bestClosing - b.bestClosing;
+      if (a.poolRank !== b.poolRank) return a.poolRank - b.poolRank;     // FW above the general seat
+      if (a.college !== b.college) return a.college < b.college ? -1 : 1;
+      return a.branch < b.branch ? -1 : (a.branch > b.branch ? 1 : 0);
+    });
     var n = 0;
     arr.forEach(function (u) { u.choiceNo = u.outOfReach ? null : (++n); });
     return arr;
@@ -256,26 +246,33 @@
 
   // Three choice-list strategies. reachable is pre-sorted toughest-first; oor = out-of-reach pools.
   var STRATS = [
-    { k: "safe", t: "Safe", d: "Only seats you&rsquo;re very likely to get &mdash; fill these to guarantee a good allotment." },
-    { k: "balanced", t: "Balanced", d: "A realistic spread &mdash; a few dream picks, several likely, a couple of safe anchors." },
-    { k: "greedy", t: "Greedy", d: "Aspirational &mdash; ~25 dream/tough picks you might land as cut-offs loosen across rounds, with a few safe anchors at the end so you&rsquo;re never left unallotted." },
+    { k: "safe", t: "Safe", d: "Only seats you&rsquo;re very likely to get, ordered by historical demand &mdash; locks in the best guaranteed allotment." },
+    { k: "balanced", t: "Balanced", d: "A realistic spread, most-wanted first &mdash; a few dream picks, the most sought-after seats you can realistically get, and a couple of safe anchors." },
+    { k: "greedy", t: "Greedy", d: "Aspirational &mdash; the most sought-after ~25 picks (including ones you can&rsquo;t get yet but might as cut-offs loosen across rounds), down to a few safe anchors so you&rsquo;re never left unallotted." },
   ];
   function dedupePools(arr) {
     var seen = {}, out = [];
     arr.forEach(function (r) { var k = r.cid + "|" + r.bid + "|" + r.social + "|" + r.gender; if (!seen[k]) { seen[k] = 1; out.push(r); } });
     return out;
   }
+  // All three strategies return a list ordered by historical desirability (prefRank: best first);
+  // they differ only in BREADTH. Safe-band anchors are always included, and because they are the
+  // easiest (highest prefRank) seats they naturally settle at the bottom as your guaranteed net.
   function strategyPicks(reachable, oor, strategy) {
-    var byClose = function (a, b) { return a.bestClosing - b.bestClosing; };   // toughest/best first
-    var reach = reachable.filter(function (r) { return r.band === "Reach"; });
-    var mod = reachable.filter(function (r) { return r.band === "Moderate"; });
-    var safe = reachable.filter(function (r) { return r.band === "Safe"; });
-    if (strategy === "safe") return safe.slice().sort(byClose).slice(0, CHOICE_CAP);
-    if (strategy === "balanced") return reach.slice(0, 3).concat(mod.slice(0, 5)).concat(safe.slice(0, 2)).sort(byClose);
-    // greedy: ~25 aspirational (closest out-of-reach + reach + moderate), dream-first, + 3 safe anchors
-    var stretch = oor.slice().sort(function (a, b) { return b.bestClosing - a.bestClosing; }).slice(0, 15); // nearest-miss first
-    var top = dedupePools(stretch.concat(reach).concat(mod)).sort(byClose).slice(0, 25);
-    return top.concat(safe.slice().sort(byClose).slice(0, 3));
+    var byPref = function (a, b) { return (a.prefRank - b.prefRank) || (a.bestClosing - b.bestClosing); };
+    var nearMiss = function (a, b) { return b.bestClosing - a.bestClosing; };   // out-of-reach closest to rank first
+    var pref = function (list) { return list.slice().sort(byPref); };
+    var safe = reachable.filter(function (r) { return r.band === "Safe"; }).sort(byPref);
+    if (strategy === "safe") return safe.slice(0, CHOICE_CAP);
+    if (strategy === "balanced") {
+      var dreams = pref(oor).slice(0, 3);                                  // 3 top stretch picks
+      var body = dedupePools(dreams.concat(pref(reachable))).slice(0, 11); // + most-desirable reachable
+      return dedupePools(body.concat(safe.slice(0, 2))).sort(byPref);      // ~12, guaranteed 2 safe anchors
+    }
+    // greedy: a long aspirational list — top dreams + nearest misses + everything you can get
+    var dreams2 = dedupePools(pref(oor).slice(0, 12).concat(oor.slice().sort(nearMiss).slice(0, 8)));
+    var body2 = dedupePools(dreams2.concat(pref(reachable))).sort(byPref).slice(0, 25);
+    return dedupePools(body2.concat(safe.slice(0, 3))).sort(byPref);       // ~25-28, dream -> safe anchors
   }
 
   function renderSimulation(results, container, opts) {
@@ -384,12 +381,66 @@
     t.appendChild(tb); wrap.appendChild(t); sec.appendChild(wrap); return sec;
   }
 
+  // branch_priority { bid: [[collegeId, demandClosing], ...] }  ->  { "cid|bid": withinBranchRank }
+  function prefFromBranchPriority(bp) {
+    var pref = {};
+    if (bp) Object.keys(bp).forEach(function (bid) {
+      bp[bid].forEach(function (pair, i) { pref[pair[0] + "|" + bid] = i + 1; });
+    });
+    return pref;
+  }
+
+  /* ---- "Top colleges by branch" browsable priority view ---- */
+  function initBranchRankings() {
+    var sel = document.getElementById("br-branch"), out = document.getElementById("br-list");
+    if (!sel || !out) return;
+    loadAll(["colleges", "branches", "demand_stats"]).then(function (a) {
+      var cols = {}; (a[0].colleges || []).forEach(function (c) { cols[c.id] = c; });
+      var blab = {}; (a[1].branches || []).forEach(function (b) { blab[b.id] = b.label; });
+      var bp = (a[2] && a[2].branch_priority) || {};
+      // only branches that actually have a priority list, by label
+      var bids = Object.keys(bp).filter(function (b) { return bp[b] && bp[b].length; })
+        .sort(function (x, y) { return (blab[x] || x).localeCompare(blab[y] || y); });
+      sel.innerHTML = bids.map(function (b) {
+        return "<option value='" + esc(b) + "'>" + esc(blab[b] || b) + " (" + bp[b].length + ")</option>";
+      }).join("");
+      function render(bid) {
+        var lst = bp[bid] || [];
+        var rows = lst.map(function (pair, i) {
+          var c = cols[pair[0]] || {}, t = c.type || "—";
+          var govt = /government|university/i.test(t);
+          return "<tr>" +
+            "<td class='num'>" + (i + 1) + "</td>" +
+            "<td><span class='co-name'>" + esc(c.name || pair[0]) + "</span><span class='sub'>" + esc(c.city || "") + "</span></td>" +
+            "<td><span class='pool " + (govt ? "" : "muted") + "'>" + esc(t) + "</span></td>" +
+            "<td class='num'>~" + fmt(pair[1]) + "</td></tr>";
+        }).join("");
+        out.innerHTML =
+          "<p class='muted'>Colleges offering <strong>" + esc(blab[bid] || bid) + "</strong>, ordered by historical demand " +
+          "(most sought-after first). &ldquo;Typical closing&rdquo; is the median open/general JEE closing rank over 2021&ndash;25 &mdash; " +
+          "<strong>lower = harder to get = more in demand</strong>. This is the same order the simulator fills your choice list in.</p>" +
+          "<div class='table-wrap'><table class='results'><thead><tr><th class='num'>#</th><th>College</th>" +
+          "<th>Type</th><th class='num'>Typical closing<br><span class='sub'>open/general</span></th></tr></thead><tbody>" +
+          rows + "</tbody></table></div>";
+      }
+      var want = qsParams().b;
+      if (want && bids.indexOf(want) > -1) sel.value = want; else if (bids.indexOf("cse") > -1) sel.value = "cse";
+      render(sel.value);
+      sel.addEventListener("change", function () {
+        render(sel.value);
+        var u = new URLSearchParams(location.search); u.set("b", sel.value);
+        history.replaceState(null, "", location.pathname + "?" + u);
+      });
+    }).catch(function (e) { showError(out, e); });
+  }
+
   function initSimulator() {
     var form = document.getElementById("sim-form");
     var results = document.getElementById("results");
     var filtersBox = document.getElementById("filters");
-    loadAll(["colleges", "branches", "cities", "intake", "config", "predictor_jee"]).then(function (a) {
+    loadAll(["colleges", "branches", "cities", "intake", "config", "predictor_jee", "demand_stats"]).then(function (a) {
       var ctx = buildContext(a[0], a[1], a[2], a[3], a[4]);
+      ctx.pref = prefFromBranchPriority(a[6] && a[6].branch_priority);   // (college|branch) -> within-branch demand rank
       var pred = a[5]; pred._roundMap = JEE_ROUND_MAP;
       var ms, curStrat = qsParams().strat || "balanced";
       function setStrat(s) { curStrat = s; var u = new URLSearchParams(location.search); u.set("strat", s); history.replaceState(null, "", location.pathname + "?" + u); }
@@ -401,11 +452,10 @@
           rank: rank, social: document.getElementById("in-cat").value, gender: document.getElementById("in-gender").value,
           domicile: document.getElementById("in-dom").value, tfw: document.getElementById("in-tfw").checked,
           citySet: ms.city.values(), branchSet: ms.branch.values(), typeSet: ms.type.values(), collegeSet: ms.college.values(),
-          groupByCollegeBranch: document.getElementById("in-group").checked,
           strategy: curStrat, onStrat: setStrat,
         };
         renderSimulation(simulate(ctx, pred, opts), results, opts);
-        setParams({ rank: rank, cat: opts.social, gender: opts.gender, dom: opts.domicile, tfw: opts.tfw ? 1 : "", grp: opts.groupByCollegeBranch ? 1 : "",
+        setParams({ rank: rank, cat: opts.social, gender: opts.gender, dom: opts.domicile, tfw: opts.tfw ? 1 : "",
           city: Array.from(opts.citySet).join(","), branch: Array.from(opts.branchSet).join(","), type: Array.from(opts.typeSet).join(","), college: Array.from(opts.collegeSet).join(",") });
       }
       ms = buildMultiFilters(ctx, filtersBox, run);
@@ -413,7 +463,6 @@
       function setVal(id, v) { var e = document.getElementById(id); if (e && v != null && v !== "") e.value = v; }
       setVal("in-rank", p.rank); setVal("in-cat", p.cat); setVal("in-gender", p.gender); setVal("in-dom", p.dom);
       if (p.tfw) document.getElementById("in-tfw").checked = true;
-      if (p.grp) document.getElementById("in-group").checked = true;
       ms.city.set(split(p.city)); ms.branch.set(split(p.branch)); ms.type.set(split(p.type)); ms.college.set(split(p.college));
       form.addEventListener("submit", run);
       form.addEventListener("change", function (e) { if (e.target.closest && e.target.closest(".ms")) return; run(); });
@@ -815,6 +864,7 @@
     else if (page === "qe") initPredictor("qe");
     else if (page === "explorer") initExplorer();
     else if (page === "accuracy") initAccuracy();
+    else if (page === "branchrank") initBranchRankings();
     else if (page === "home") initHome();
     // nav toggle (mobile)
     var tg = document.querySelector(".nav-toggle"), links = document.querySelector(".nav-links");
