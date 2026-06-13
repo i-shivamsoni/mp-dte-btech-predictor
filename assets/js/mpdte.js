@@ -404,30 +404,37 @@
       sel.innerHTML = bids.map(function (b) {
         return "<option value='" + esc(b) + "'>" + esc(blab[b] || b) + " (" + bp[b].length + ")</option>";
       }).join("");
-      function render(bid) {
-        var lst = bp[bid] || [];
-        var rows = lst.map(function (pair, i) {
-          var c = cols[pair[0]] || {}, t = c.type || "—";
-          var govt = /government|university/i.test(t);
-          return "<tr>" +
-            "<td class='num'>" + (i + 1) + "</td>" +
-            "<td><span class='co-name'>" + esc(c.name || pair[0]) + "</span><span class='sub'>" + esc(c.city || "") + "</span></td>" +
-            "<td><span class='pool " + (govt ? "" : "muted") + "'>" + esc(t) + "</span></td>" +
-            "<td class='num'>~" + fmt(pair[1]) + "</td></tr>";
-        }).join("");
+      var CAP = 50;
+      function rowHtml(pair, i) {
+        var c = cols[pair[0]] || {}, t = c.type || "—";
+        var govt = /government|university/i.test(t);
+        return "<tr>" +
+          "<td class='num'>" + (i + 1) + "</td>" +
+          "<td><span class='co-name'>" + esc(c.name || pair[0]) + "</span><span class='sub'>" + esc(c.city || "") + "</span></td>" +
+          "<td><span class='pool " + (govt ? "" : "muted") + "'>" + esc(t) + "</span></td>" +
+          "<td class='num'>~" + fmt(pair[1]) + "</td></tr>";
+      }
+      function render(bid, expanded) {
+        var lst = bp[bid] || [], total = lst.length, capped = total > CAP && !expanded;
+        var rows = (capped ? lst.slice(0, CAP) : lst).map(rowHtml).join("");
         out.innerHTML =
           "<p class='muted'>Colleges offering <strong>" + esc(blab[bid] || bid) + "</strong>, ordered by historical demand " +
           "(most sought-after first). &ldquo;Typical closing&rdquo; is the median open/general JEE closing rank over 2021&ndash;25 &mdash; " +
-          "<strong>lower = harder to get = more in demand</strong>. This is the same order the simulator fills your choice list in.</p>" +
+          "<strong>lower = harder to get = more in demand</strong>. This is the same order the simulator fills your choice list in." +
+          (capped ? " <strong>Showing the top " + CAP + " of " + total + ".</strong>" : "") + "</p>" +
           "<div class='table-wrap'><table class='results'><thead><tr><th class='num'>#</th><th>College</th>" +
           "<th>Type</th><th class='num'>Typical closing<br><span class='sub'>open/general</span></th></tr></thead><tbody>" +
-          rows + "</tbody></table></div>";
+          rows + "</tbody></table></div>" +
+          (total > CAP ? "<div class='br-more-wrap'><button type='button' class='br-more' data-exp='" + (expanded ? "1" : "0") + "'>" +
+            (expanded ? "Show top " + CAP + " only &uarr;" : "Show all " + total + " colleges &darr;") + "</button></div>" : "");
+        var mb = out.querySelector(".br-more");
+        if (mb) mb.addEventListener("click", function () { render(bid, mb.getAttribute("data-exp") !== "1"); });
       }
       var want = qsParams().b;
       if (want && bids.indexOf(want) > -1) sel.value = want; else if (bids.indexOf("cse") > -1) sel.value = "cse";
-      render(sel.value);
+      render(sel.value, false);
       sel.addEventListener("change", function () {
-        render(sel.value);
+        render(sel.value, false);
         var u = new URLSearchParams(location.search); u.set("b", sel.value);
         history.replaceState(null, "", location.pathname + "?" + u);
       });

@@ -229,3 +229,12 @@ body[data-page="accuracy"] main.container { max-width: 940px; }
 .strat-btn:hover { border-color: var(--brand); }
 .strat-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
 .strat-desc { margin: 0 0 8px; }
+
+/* Branch-ranks "show all" toggle */
+.br-more-wrap { text-align: center; margin: 16px 0 4px; }
+.br-more {
+  font: inherit; font-weight: 600; color: var(--accent, #1f4fbf);
+  background: #fff; border: 1px solid var(--accent, #1f4fbf); border-radius: 999px;
+  padding: 8px 18px; cursor: pointer; transition: background .15s, color .15s;
+}
+.br-more:hover { background: var(--accent, #1f4fbf); color: #fff; }
