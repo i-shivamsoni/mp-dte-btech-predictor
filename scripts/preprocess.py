@@ -447,12 +447,9 @@ def main():
         else:
             unmatched_rows += 1
 
-    # drop special horizontal-quota seats (middle code != X: Sainik/Divyang/NCC/Freedom-Fighter/…).
-    # They are NOT general seats; a normal candidate doesn't compete in them, and leaving them in
-    # wrongly merged e.g. UR/D/OP + UR/S/OP into the general UR/OP pool. Special slots are not modelled.
-    before_special = len(cutoffs)
-    cutoffs = [r for r in cutoffs if not is_special_class(r.get("_class"))]
-    print(f"dropped {before_special - len(cutoffs)} special-slot (non-X class) seat rows")
+    # NOTE: special horizontal-quota seats (CLASS != X: Sainik/Divyang/NCC/Freedom-Fighter/…) are
+    # KEPT as their own distinct pools (carried via the `cls` column) — they must never be merged
+    # into the general UR/X/OP pool. The client matches each exact SOCIAL/CLASS/GENDER code.
 
     # de-dupe split colleges: a synthetic (historical) entry whose normalized name is a leading
     # prefix of a real intake college (e.g. a cut-off name missing the trailing city) is the SAME
@@ -483,10 +480,11 @@ def main():
     seen_ids = {r["_cid"] for r in cutoffs if r["_cid"]}
     # (intake colleges already in `colleges`; historical-only handled in UI via null seats)
 
-    COLS = ["c", "b", "yr", "rd", "cat", "gen", "fw", "dom", "home", "op", "cl", "al"]
+    COLS = ["c", "b", "yr", "rd", "cat", "cls", "gen", "fw", "dom", "home", "op", "cl", "al"]
     def row_of(r, cl):
         return [
             r["_cid"], r["_bid"], r["year"], r["_rc"], r.get("_social") or "UR",
+            r.get("_class") or "",                          # CLASS: ""/X general; D/FF/NCC/S special quota
             r.get("_gender") or "OP", 1 if (r.get("fw") == "Y") else 0, r.get("_dom") or "",
             r.get("_home", 1),
             to_int(r.get("opening_rank")) or cl, cl, to_int(r.get("total_allotted")) or 0,
@@ -607,10 +605,12 @@ def main():
         cl = to_int(r.get("closing_rank"))
         if cl is None:
             continue
+        if (r.get("_class") or "") not in ("", "X"):
+            continue                                  # special-quota seats don't define general demand
         slot = cb_year[(r["_cid"], r["_bid"])][r["year"]]
         slot["all"].append(cl)
         if (r.get("_social") or "UR") == "UR" and (r.get("_gender") or "OP") == "OP" and r.get("fw") != "Y":
-            slot["ur"].append(cl)                     # open/general seat = cleanest demand signal
+            slot["ur"].append(cl)                     # UR/X/OP = toughest open seat = cleanest demand signal
     cb_score = {}
     for (cid, bid), yd in cb_year.items():
         yr_meds = [statistics.median(s["ur"] or s["all"]) for s in yd.values() if (s["ur"] or s["all"])]

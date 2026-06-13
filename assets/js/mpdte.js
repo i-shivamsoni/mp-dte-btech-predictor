@@ -73,13 +73,17 @@
   function poolRank(cat, gen) {
     return (POOL_RANK[cat] != null ? POOL_RANK[cat] : 9) * 10 + (GEN_RANK[gen] != null ? GEN_RANK[gen] : 9);
   }
-  // (social, gender) pools a profile may occupy. JKM/JKR/NTPC excluded by omission.
+  // exact (social, class, gender) codes a profile may be allotted under. We match each EXACT
+  // SOCIAL/CLASS/GENDER code separately — never merge e.g. UR/X/OP with UR/D/OP. JKM/JKR/NTPC omitted.
+  var QUOTA_LABEL = { D: "Divyang (PwD)", S: "Defence / Ex-serviceman", FF: "Freedom Fighter", NCC: "NCC", H: "Special (H)", TS: "Special (TS)" };
   function eligiblePools(p) {
     var cats = { UR: 1 };
-    if (p.social && p.social !== "UR") cats[p.social] = 1;
+    if (p.social && p.social !== "UR") cats[p.social] = 1;     // your reserved category + open merit
     if (p.tfw && p.domicile !== "other") cats.FW = 1;          // TFW: MP-domicile only
     var gens = (p.gender === "F") ? { OP: 1, F: 1 } : { OP: 1, M: 1 };
-    return { cats: cats, gens: gens };
+    var classes = { "": 1, "X": 1 };                            // general / class-less (EWS, FW)
+    if (p.quota && QUOTA_LABEL[p.quota]) classes[p.quota] = 1;  // a claimed special horizontal quota
+    return { cats: cats, gens: gens, classes: classes };
   }
   // earliest enterable round (r1 then r2) whose closing >= rank
   function assignRound(rounds, rank) {
@@ -112,7 +116,8 @@
     var pools = {}, clears = {}, seenYear = {}, rows = pred.rows;
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i], cat = r[ci.cat], gen = r[ci.gen];
-      if (!elig.cats[cat] || !elig.gens[gen]) continue;
+      var cls = (ci.cls != null) ? (r[ci.cls] || "") : "X";          // CLASS field (back-compat default X)
+      if (!elig.cats[cat] || !elig.gens[gen] || !elig.classes[cls]) continue;
       if (opts.domicile === "other" && r[ci.home] === 1) continue;
       var cid = r[ci.c], bid = r[ci.b];
       if (!has(opts.branchSet, bid)) continue;
@@ -121,13 +126,13 @@
       if (!has(opts.citySet, col.city)) continue;
       if (!has(opts.typeSet, col.type)) continue;
       var bucketRaw = rmap[r[ci.rd]]; if (!bucketRaw) continue;
-      var key = cid + "|" + bid + "|" + cat + "|" + gen;
+      var key = cid + "|" + bid + "|" + cat + "|" + cls + "|" + gen;   // EXACT code — never merge codes
       if (bucketRaw === "r1" || bucketRaw === "r1u") {
         var yk = key + "|" + r[ci.yr];
         if (!seenYear[yk]) { seenYear[yk] = 1; var c0 = clears[key] || (clears[key] = { tot: 0, ok: 0 }); c0.tot += 1; if (opts.rank <= r[ci.cl]) c0.ok += 1; }
       }
       if (r[ci.yr] !== basis) continue;
-      var p = pools[key] || (pools[key] = { cid: cid, bid: bid, cat: cat, gen: gen, dom: r[ci.dom], rounds: {} });
+      var p = pools[key] || (pools[key] = { cid: cid, bid: bid, cat: cat, cls: cls, gen: gen, dom: r[ci.dom], rounds: {} });
       // r1 / r1u (upgrade) / r2 kept as distinct rounds; collect all sub-seat closings per round
       var tgt = bucketRaw, cell = p.rounds[tgt] || (p.rounds[tgt] = { cls: [], ops: [], al: 0 });
       cell.cls.push(r[ci.cl]); cell.ops.push(r[ci.op]); cell.al += (r[ci.al] || 0);
@@ -151,8 +156,11 @@
         bucket: asg.bucket || "out", outOfReach: asg.outOfReach, closing: asg.closing, opening: asg.opening,
         viaUpgrade: asg.viaUpgrade, seats: (ctx.intake[p.cid] || {})[p.bid] || null,
         bestClosing: best != null ? best : Infinity, tfw: p.cat === "FW",
+        cls: p.cls, quota: (p.cls && p.cls !== "X") ? p.cls : "",
         prefRank: (ctx.pref && ctx.pref[p.cid + "|" + p.bid]) || 1e9,   // historical desirability (1 = most sought-after)
-        pool: (p.cat === "FW") ? "tfw" : (p.gen === "F" ? "female" : ((p.cat === opts.social && opts.social !== "UR") ? "reserved" : "general")),
+        pool: (p.cls && p.cls !== "X") ? "special"
+            : (p.cat === "FW") ? "tfw"
+            : (p.gen === "F" ? "female" : ((p.cat === opts.social && opts.social !== "UR") ? "reserved" : "general")),
         poolRank: poolRank(p.cat, p.gen), historical: !!col.historical,
         band: bandFor(opts.rank, asg.closing, asg.bucket, cl.ok, cl.tot),
       });
@@ -243,6 +251,10 @@
 
   /* ---- simulator rendering ---- */
   function poolTag(r) {
+    if (r.quota) {
+      var soc = (r.social && r.social !== "UR") ? esc(r.social) + " " : "";
+      return "<span class='pool pool-special' title='special horizontal quota — only if you hold this status'>" + soc + esc(QUOTA_LABEL[r.quota] || r.quota) + "</span>";
+    }
     if (r.tfw) return "<span class='pool pool-tfw' title='Tuition Fee Waiver — zero tuition (family income ≤ ₹8L), MP-domicile only, no branch/college change after admission'>TFW</span>";
     if (r.pool === "reserved") return "<span class='pool' title='your reserved-category pool'>" + esc(r.social) + "</span>";
     if (r.pool === "female") return "<span class='pool pool-f' title='female pool — easier cut-off'>Female</span>";
@@ -253,7 +265,10 @@
     if (r.domicile === "MP") return " <span class='pool muted' title='MP home-state seat'>MP</span>";
     return "";
   }
-  function poolLabel(r) { return r.tfw ? "TFW" : (r.pool === "female" ? r.social + " Female" : (r.pool === "reserved" ? r.social : "General")); }
+  function poolLabel(r) {
+    if (r.quota) return ((r.social && r.social !== "UR") ? r.social + " " : "") + (QUOTA_LABEL[r.quota] || r.quota);
+    return r.tfw ? "TFW" : (r.pool === "female" ? r.social + " Female" : (r.pool === "reserved" ? r.social : "General"));
+  }
   var CHOICE_CAP = 50;
 
   // Three choice-list strategies. reachable is pre-sorted toughest-first; oor = out-of-reach pools.
@@ -504,17 +519,18 @@
         var opts = {
           rank: rank, social: document.getElementById("in-cat").value, gender: document.getElementById("in-gender").value,
           domicile: document.getElementById("in-dom").value, tfw: document.getElementById("in-tfw").checked,
+          quota: document.getElementById("in-quota").value,
           citySet: ms.city.values(), branchSet: ms.branch.values(), typeSet: ms.type.values(), collegeSet: ms.college.values(),
           strategy: curStrat, onStrat: setStrat,
         };
         renderSimulation(simulate(ctx, pred, opts), results, opts);
-        setParams({ rank: rank, cat: opts.social, gender: opts.gender, dom: opts.domicile, tfw: opts.tfw ? 1 : "",
+        setParams({ rank: rank, cat: opts.social, gender: opts.gender, dom: opts.domicile, tfw: opts.tfw ? 1 : "", quota: opts.quota,
           city: Array.from(opts.citySet).join(","), branch: Array.from(opts.branchSet).join(","), type: Array.from(opts.typeSet).join(","), college: Array.from(opts.collegeSet).join(",") });
       }
       ms = buildMultiFilters(ctx, filtersBox, run);
       var p = qsParams(), split = function (s) { return s ? s.split(",") : []; };
       function setVal(id, v) { var e = document.getElementById(id); if (e && v != null && v !== "") e.value = v; }
-      setVal("in-rank", p.rank); setVal("in-cat", p.cat); setVal("in-gender", p.gender); setVal("in-dom", p.dom);
+      setVal("in-rank", p.rank); setVal("in-cat", p.cat); setVal("in-gender", p.gender); setVal("in-dom", p.dom); setVal("in-quota", p.quota);
       if (p.tfw) document.getElementById("in-tfw").checked = true;
       ms.city.set(split(p.city)); ms.branch.set(split(p.branch)); ms.type.set(split(p.type)); ms.college.set(split(p.college));
       form.addEventListener("submit", run);
