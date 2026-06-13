@@ -98,6 +98,11 @@
     return BANDS[idx < 0 ? 0 : idx > 3 ? 3 : idx];
   }
 
+  function median(a) {
+    if (!a || !a.length) return null;
+    var s = a.slice().sort(function (x, y) { return x - y; }), n = s.length;
+    return n % 2 ? s[(n - 1) / 2] : Math.round((s[n / 2 - 1] + s[n / 2]) / 2);
+  }
   function simulate(ctx, pred, opts) {
     var ci = colIndex(pred);
     var rmap = pred._roundMap || JEE_ROUND_MAP;
@@ -123,14 +128,21 @@
       }
       if (r[ci.yr] !== basis) continue;
       var p = pools[key] || (pools[key] = { cid: cid, bid: bid, cat: cat, gen: gen, dom: r[ci.dom], rounds: {} });
-      var tgt = bucketRaw, cell = p.rounds[tgt];      // r1 / r1u (upgrade) / r2 kept as distinct rounds
-      if (!cell) { p.rounds[tgt] = { cl: r[ci.cl], op: r[ci.op], al: r[ci.al] || 0 }; }
-      else { cell.al += (r[ci.al] || 0); if (r[ci.cl] > cell.cl) { cell.cl = r[ci.cl]; cell.op = r[ci.op]; } }
+      // r1 / r1u (upgrade) / r2 kept as distinct rounds; collect all sub-seat closings per round
+      var tgt = bucketRaw, cell = p.rounds[tgt] || (p.rounds[tgt] = { cls: [], ops: [], al: 0 });
+      cell.cls.push(r[ci.cl]); cell.ops.push(r[ci.op]); cell.al += (r[ci.al] || 0);
       p.dom = r[ci.dom];
     }
     var out = [];
     Object.keys(pools).forEach(function (k) {
-      var p = pools[k], asg = assignRound(p.rounds, opts.rank), best = null;
+      var p = pools[k];
+      // each round's closing = MEDIAN of its sub-seat closings (robust to 1-seat outliers — the
+      // rank that pool TYPICALLY closes at); opening = the best (lowest) entry rank seen.
+      SECURING_ORDER.forEach(function (b) {
+        var c = p.rounds[b]; if (!c) return;
+        c.cl = median(c.cls); c.op = c.ops.length ? Math.min.apply(null, c.ops) : c.cl;
+      });
+      var asg = assignRound(p.rounds, opts.rank), best = null;
       SECURING_ORDER.forEach(function (b) { var c = p.rounds[b]; if (c && (best == null || c.cl < best)) best = c.cl; });
       var cl = clears[k] || { tot: 0, ok: 0 }, col = ctx.colleges[p.cid] || {};
       out.push({
@@ -337,27 +349,37 @@
       });
     }
 
-    // round-grouped detail tables — show the 50 most sought-after by default (rows are
-    // demand-ordered), with a toggle to reveal the full list so it stays navigable.
+    // round-grouped detail tables — cap EACH round at its 50 most sought-after (rows are
+    // demand-ordered) with its own toggle, so every round stays visible and navigable.
     var SIM_CAP = 50;
     var rounds = el("div", "sim-rounds");
     container.appendChild(rounds);
-    function renderRounds(showAll) {
-      rounds.innerHTML = "";
-      var shown = showAll ? reachable : reachable.slice(0, SIM_CAP), counter = { v: 0 };
-      SECURING_ORDER.forEach(function (b) {
-        var rows = shown.filter(function (r) { return r.bucket === b; });
-        if (rows.length) rounds.appendChild(simRoundSection(b, rows, counter));
-      });
-      if (reachable.length > SIM_CAP) {
-        var wrap = el("div", "br-more-wrap"), btn = el("button", "br-more"); btn.type = "button";
-        btn.innerHTML = showAll ? "Show top " + SIM_CAP + " only &uarr;"
-          : "Show all " + reachable.length + " options &darr;";
-        btn.addEventListener("click", function () { renderRounds(!showAll); });
-        wrap.appendChild(btn); rounds.appendChild(wrap);
+    SECURING_ORDER.forEach(function (b) {
+      var all = reachable.filter(function (r) { return r.bucket === b; });
+      if (!all.length) {
+        // explain the (common) empty First-Round Upgrade so it doesn't look like a bug
+        if (b === "r1u" && reachable.length) rounds.appendChild(el("p", "round-empty muted",
+          "<strong>First-Round Upgrade &mdash; no new options at rank " + fmt(opts.rank) + ".</strong> " +
+          "Every seat you qualify for is already securable in Round 1, and the rest don&rsquo;t open up until Round 2. " +
+          "(The upgrade round mainly lets students already allotted in Round 1 move to a higher choice.)"));
+        return;
       }
-    }
-    renderRounds(false);
+      var sec = el("div", "round-wrap");
+      rounds.appendChild(sec);
+      function draw(showAll) {
+        sec.innerHTML = "";
+        var shown = showAll ? all : all.slice(0, SIM_CAP);
+        sec.appendChild(simRoundSection(b, shown, { v: 0 }, all.length));
+        if (all.length > SIM_CAP) {
+          var wrap = el("div", "br-more-wrap"), btn = el("button", "br-more"); btn.type = "button";
+          btn.innerHTML = showAll ? "Show top " + SIM_CAP + " only &uarr;"
+            : "Show all " + all.length + " in this round &darr;";
+          btn.addEventListener("click", function () { draw(!showAll); });
+          wrap.appendChild(btn); sec.appendChild(wrap);
+        }
+      }
+      draw(false);
+    });
     if (unreachable.length) {
       var det = el("details", "unreachable");
       det.appendChild(el("summary", null, "Show " + unreachable.length + " out-of-reach seat-pools"));
@@ -366,12 +388,12 @@
     }
   }
 
-  function simRoundSection(bucket, rows, counter) {
+  function simRoundSection(bucket, rows, counter, total) {
     var sec = el("section", "round-block round-" + bucket);
     var head = (bucket === "r1") ? "Likely in Round 1"
       : (bucket === "r1u") ? "Likely in the First-Round Upgrade"
       : (bucket === "r2") ? "Likely securable by Round 2" : "Out of reach";
-    sec.appendChild(el("h2", "round-title", esc(head) + " <span class='round-count'>" + rows.length + "</span>"));
+    sec.appendChild(el("h2", "round-title", esc(head) + " <span class='round-count'>" + (total || rows.length) + "</span>"));
     var wrap = el("div", "table-wrap"), t = el("table", "results sim-results");
     t.innerHTML = "<thead><tr><th class='num'>#</th><th>College &middot; Branch</th><th>Pool</th>" +
       "<th>City / Type</th><th class='num'>Closing rank<br><span class='sub'>basis</span></th>" +
