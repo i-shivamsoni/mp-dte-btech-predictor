@@ -53,9 +53,9 @@
   }
 
   function band(rank, closing) {
-    if (rank <= closing * 0.8) return "Safe";
+    if (rank * 5 <= closing * 4) return "Safe";        // rank <= 0.80*closing (integer-exact)
     if (rank <= closing) return "Moderate";
-    if (rank <= closing * 1.15) return "Reach";
+    if (rank * 20 <= closing * 23) return "Reach";     // rank <= 1.15*closing (integer-exact)
     return "Unreachable";
   }
 
@@ -96,10 +96,11 @@
   var BANDS = ["Safe", "Moderate", "Reach", "Unreachable"];
   function bandFor(rank, closing, bucket, cleared, total) {
     if (closing == null) return "Unreachable";
-    var idx = (rank <= 0.80 * closing) ? 0 : (rank <= closing) ? 1 : (rank <= 1.15 * closing) ? 2 : 3;
+    var idx = (rank * 5 <= closing * 4) ? 0 : (rank <= closing) ? 1 : (rank * 20 <= closing * 23) ? 2 : 3;
     if (bucket === "r2" && idx < 2) idx = 2;                   // 2nd-round availability is volatile
     if (total >= 2) { if (cleared === total) idx -= 1; else if (cleared === 0) idx += 1; }
-    return BANDS[idx < 0 ? 0 : idx > 3 ? 3 : idx];
+    if (idx > 2) idx = 2;        // a pool WITH a securing round is reachable -> never "Unreachable"
+    return BANDS[idx < 0 ? 0 : idx];
   }
 
   function median(a) {
@@ -113,7 +114,7 @@
     var basis = opts.year || pred.years[pred.years.length - 1];
     var elig = eligiblePools(opts);
     var has = function (set, v) { return !set || set.size === 0 || set.has(v); };
-    var pools = {}, clears = {}, seenYear = {}, rows = pred.rows;
+    var pools = {}, clears = {}, clearsYr = {}, rows = pred.rows;
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i], cat = r[ci.cat], gen = r[ci.gen];
       var cls = (ci.cls != null) ? (r[ci.cls] || "") : "X";          // CLASS field (back-compat default X)
@@ -122,14 +123,14 @@
       var cid = r[ci.c], bid = r[ci.b];
       if (!has(opts.branchSet, bid)) continue;
       if (opts.collegeSet && opts.collegeSet.size && !opts.collegeSet.has(cid)) continue;
-      var col = ctx.colleges[cid]; if (!col) continue;
+      var col = ctx.colleges[cid]; if (!col || col.historical) continue;   // skip defunct (no 2026-27 intake)
       if (!has(opts.citySet, col.city)) continue;
       if (!has(opts.typeSet, col.type)) continue;
       var bucketRaw = rmap[r[ci.rd]]; if (!bucketRaw) continue;
       var key = cid + "|" + bid + "|" + cat + "|" + cls + "|" + gen;   // EXACT code — never merge codes
-      if (bucketRaw === "r1" || bucketRaw === "r1u") {
+      if (bucketRaw === "r1" || bucketRaw === "r1u") {        // collect r1/r1u closings per (key,year) for the multi-year nudge
         var yk = key + "|" + r[ci.yr];
-        if (!seenYear[yk]) { seenYear[yk] = 1; var c0 = clears[key] || (clears[key] = { tot: 0, ok: 0 }); c0.tot += 1; if (opts.rank <= r[ci.cl]) c0.ok += 1; }
+        (clearsYr[yk] || (clearsYr[yk] = { key: key, cls: [] })).cls.push(r[ci.cl]);
       }
       if (r[ci.yr] !== basis) continue;
       var p = pools[key] || (pools[key] = { cid: cid, bid: bid, cat: cat, cls: cls, gen: gen, dom: r[ci.dom], rounds: {} });
@@ -138,6 +139,13 @@
       cell.cls.push(r[ci.cl]); cell.ops.push(r[ci.op]); cell.al += (r[ci.al] || 0);
       p.dom = r[ci.dom];
     }
+    // multi-year "cleared" tally: one count per (key,year), using the MEDIAN of that year's r1/r1u
+    // sub-seat closings — the SAME aggregation as the displayed round closing (so the band nudge is
+    // consistent and not dependent on row order in the data).
+    Object.keys(clearsYr).forEach(function (yk) {
+      var o = clearsYr[yk], m = median(o.cls), c = clears[o.key] || (clears[o.key] = { tot: 0, ok: 0 });
+      c.tot += 1; if (opts.rank <= m) c.ok += 1;
+    });
     var out = [];
     Object.keys(pools).forEach(function (k) {
       var p = pools[k];
@@ -484,28 +492,31 @@
           "<td><span class='pool " + (govt ? "" : "muted") + "'>" + esc(t) + "</span></td>" +
           "<td class='num'>~" + fmt(pair[1]) + "</td></tr>";
       }
-      function render(bid) {
-        var all = bp[bid] || [], total = all.length, type = typeSel ? typeSel.value : "",
-          city = citySel ? citySel.value : "";
+      var CAP = 50;
+      function render(bid, expanded) {
+        var all = bp[bid] || [], type = typeSel ? typeSel.value : "", city = citySel ? citySel.value : "";
         var lst = all.filter(function (pair) {
           var c = cols[pair[0]] || {};
-          return (!type || c.type === type) && (!city || c.city === city);
-        })
-          .map(function (pair, i) { return { pair: pair, rank: i + 1 }; });
-        var matchTotal = lst.length, rows = lst.map(rowHtml).join("");
+          return c && !c.historical && (!type || c.type === type) && (!city || c.city === city);  // skip defunct colleges
+        }).map(function (pair, i) { return { pair: pair, rank: i + 1 }; });
+        var matchTotal = lst.length, capped = matchTotal > CAP && !expanded;
+        var rows = (capped ? lst.slice(0, CAP) : lst).map(rowHtml).join("");
         var criteria = [];
         if (type) criteria.push("<strong>" + esc(type) + "</strong>");
         if (city) criteria.push("<strong>" + esc(city) + "</strong>");
-        var filterNote = criteria.length ? " Filtered to " + criteria.join(" in ") + ": <strong>" +
-          matchTotal + "</strong> of " + total + " colleges match." : "";
+        var filterNote = criteria.length ? " Filtered to " + criteria.join(" in ") + ": <strong>" + matchTotal + "</strong> match." : "";
         out.innerHTML =
           "<p class='muted'>Colleges offering <strong>" + esc(blab[bid] || bid) + "</strong>, ordered by historical demand " +
-          "(most sought-after first). &ldquo;Typical closing&rdquo; is the median open/general JEE closing rank over 2021&ndash;25 &mdash; " +
-          "<strong>lower = harder to get = more in demand</strong>. This is the same order the simulator fills your choice list in." +
-          filterNote + "</p>" +
+          "(most sought-after first). &ldquo;Typical demand&rdquo; is the open/general (UR) Round-1 <strong>opening</strong> rank over 2021&ndash;25 " +
+          "&mdash; the best-ranked student who chose it; <strong>lower = more in demand</strong>. Same order the simulator fills your choice list in." +
+          filterNote + (capped ? " <strong>Showing the top " + CAP + ".</strong>" : "") + "</p>" +
           (matchTotal ? "<div class='table-wrap'><table class='results'><thead><tr><th class='num'>#</th><th>College</th>" +
-          "<th>Type</th><th class='num'>Typical closing<br><span class='sub'>open/general</span></th></tr></thead><tbody>" +
-          rows + "</tbody></table></div>" : "<p class='empty'>No colleges match this branch and filters.</p>");
+          "<th>Type</th><th class='num'>Typical demand<br><span class='sub'>open rank</span></th></tr></thead><tbody>" +
+          rows + "</tbody></table></div>" : "<p class='empty'>No colleges match this branch and filters.</p>") +
+          (matchTotal > CAP ? "<div class='br-more-wrap'><button type='button' class='br-more'>" +
+            (expanded ? "Show top " + CAP + " only &uarr;" : "Show all " + matchTotal + " colleges &darr;") + "</button></div>" : "");
+        var mb = out.querySelector(".br-more");
+        if (mb) mb.addEventListener("click", function () { render(bid, !expanded); });
       }
       function syncUrl() { setParams({ b: sel.value, type: typeSel && typeSel.value, city: citySel && citySel.value }); }
       var params = qsParams(), want = params.b;
@@ -534,8 +545,11 @@
       function setStrat(s) { curStrat = s; var u = new URLSearchParams(location.search); u.set("strat", s); history.replaceState(null, "", location.pathname + "?" + u); }
       function run(e) {
         if (e) e.preventDefault();
-        var rank = parseInt(document.getElementById("in-rank").value, 10);
-        if (isNaN(rank)) { results.innerHTML = "<p class='empty'>Enter your JEE rank to simulate.</p>"; return; }
+        var rawRank = (document.getElementById("in-rank").value || "").trim();
+        var rank = parseInt(rawRank, 10);
+        if (!/^\d+$/.test(rawRank) || isNaN(rank) || rank < 1) {
+          results.innerHTML = "<p class='empty'>Enter a valid JEE rank &mdash; a whole number 1 or higher.</p>"; return;
+        }
         if (!ms.branch.values().size) {
           results.innerHTML = "<p class='empty'>Pick at least one <strong>branch</strong> to simulate. Results are compared <em>within</em> a branch, so a branch must be chosen (you can pick several). Open <strong>&ldquo;Filter by branch&hellip;&rdquo;</strong> below and select your branch(es).</p>";
           return;
@@ -556,6 +570,7 @@
       function setVal(id, v) { var e = document.getElementById(id); if (e && v != null && v !== "") e.value = v; }
       setVal("in-rank", p.rank); setVal("in-cat", p.cat); setVal("in-gender", p.gender); setVal("in-dom", p.dom); setVal("in-quota", p.quota);
       if (p.tfw) document.getElementById("in-tfw").checked = true;
+      lockTfwByDomicile(document.getElementById("in-dom"), document.getElementById("in-tfw"));  // TFW is MP-domicile only
       ms.city.set(split(p.city)); ms.branch.set(split(p.branch)); ms.type.set(split(p.type)); ms.college.set(split(p.college));
       form.addEventListener("submit", run);
       form.addEventListener("change", function (e) { if (e.target.closest && e.target.closest(".ms")) return; run(); });
@@ -581,6 +596,8 @@
       var social = r[ci.cat];
       if (!eligible[social]) continue;
       if (!egender[r[ci.gen]]) continue;
+      var cls = (ci.cls != null) ? (r[ci.cls] || "") : "";
+      if (cls && cls !== "X") continue;              // special-quota seats not modelled on the % route
       // non-MP-domicile students can't take MP home-state-only seats
       // non-MP-domicile students can only take "open" seats (home=0): All-India seats at any
       // college, and UR/general seats at PRIVATE colleges. All MP-only seats (home=1) are dropped.
@@ -593,12 +610,14 @@
       if (opts.type && (!col || col.type !== opts.type)) continue;
       // TFW seats are a SEPARATE pool — keep them as their own row so the student sees
       // both their regular (paid) chance and their zero-tuition (TFW) chance per college.
-      var key = cid + "|" + bid + "|" + (social === "FW" ? "T" : "C");
+      // EXACT SOCIAL/CLASS/GENDER code — never merge (UR and EWS stay as separate rows, each with
+      // its own closing), mirroring simulate(). TFW (FW) is its own pool too.
+      var key = cid + "|" + bid + "|" + social + "|" + cls + "|" + r[ci.gen];
       var cur = groups[key];
       // year-first, then most lenient (highest closing) within that year
       if (!cur || r[ci.yr] > cur._yr || (r[ci.yr] === cur._yr && r[ci.cl] > cur._cl)) {
         groups[key] = { _cid: cid, _bid: bid, _yr: r[ci.yr], _rd: r[ci.rd], _social: social,
-          _gen: r[ci.gen], _dom: r[ci.dom], _op: r[ci.op], _cl: r[ci.cl], _al: r[ci.al] };
+          _cls: cls, _gen: r[ci.gen], _dom: r[ci.dom], _op: r[ci.op], _cl: r[ci.cl], _al: r[ci.al] };
       }
     }
     var out = [];
@@ -640,10 +659,14 @@
     city.appendChild(new Option("Any city", ""));
     ctx.cities.forEach(function (c) { city.appendChild(new Option(c, c)); });
     group("City", city);
-    // Branch
+    // Branch — only branches actually offered by a current (2026-27 intake) college
+    var offered = {};
+    Object.keys(ctx.intake || {}).forEach(function (cid) {
+      Object.keys(ctx.intake[cid] || {}).forEach(function (bid) { offered[bid] = 1; });
+    });
     var branch = el("select"); branch.id = "f-branch";
     branch.appendChild(new Option("Any branch", ""));
-    ctx.branches.forEach(function (b) { branch.appendChild(new Option(b.label, b.id)); });
+    ctx.branches.forEach(function (b) { if (offered[b.id]) branch.appendChild(new Option(b.label, b.id)); });
     group("Branch", branch);
     // Institute type (official MP-DTE categories, from data)
     var type = el("select"); type.id = "f-type";
@@ -672,7 +695,7 @@
     var unreachable = results.filter(function (r) { return r.band === "Unreachable"; });
 
     var summary = el("p", "result-summary",
-      "<strong>" + reachable.length + "</strong> reachable college&times;branch options" +
+      "<strong>" + reachable.length + "</strong> reachable college&times;branch option" + (reachable.length === 1 ? "" : "s") +
       (unreachable.length ? " &middot; " + unreachable.length + " out of reach" : ""));
     container.appendChild(summary);
 
@@ -748,6 +771,19 @@
       "seats at government colleges are not. Verify with DTE.</div>";
   }
 
+  // TFW is MP-domicile only: disable + uncheck the TFW box whenever domicile = Other state.
+  function lockTfwByDomicile(domEl, tfwEl) {
+    if (!domEl || !tfwEl) return;
+    function sync() {
+      var other = domEl.value === "other";
+      if (other) tfwEl.checked = false;
+      tfwEl.disabled = other;
+      var lab = tfwEl.closest ? tfwEl.closest("label") : null;
+      if (lab) { lab.classList.toggle("disabled", other); lab.title = other ? "Tuition Fee Waiver is for MP-domicile candidates only" : ""; }
+    }
+    domEl.addEventListener("change", sync); sync();
+  }
+
   /* ---------- context assembly ---------- */
   function buildContext(colleges, branches, cities, intake, config) {
     var byId = {}; colleges.colleges.forEach(function (c) { byId[c.id] = c; });
@@ -774,7 +810,10 @@
       if (mode === "qe") {
         var ysel = document.getElementById("f-year");
         pred.years.forEach(function (y) { ysel.appendChild(new Option(y, y)); });
-        ysel.value = pred.years[pred.years.length - 1];
+        var wantY = parseInt(qsParams().year, 10);                       // honor ?year=, snapping to nearest available
+        ysel.value = (!isNaN(wantY) && pred.years.indexOf(wantY) > -1) ? wantY
+          : (!isNaN(wantY) ? pred.years.reduce(function (b, y) { return Math.abs(y - wantY) < Math.abs(b - wantY) ? y : b; }, pred.years[0])
+            : pred.years[pred.years.length - 1]);
       }
       var p = qsParams();
       function setVal(id, v) { var e = document.getElementById(id); if (e && v != null && v !== "") e.value = v; }
@@ -784,6 +823,7 @@
       if (p.branch) fc.branch.value = p.branch;
       if (p.type) fc.type.value = p.type;
       if (p.tfw) fc.fw.checked = true;
+      lockTfwByDomicile(document.getElementById("in-dom"), fc.fw);   // TFW is MP-domicile only
 
       function run(e) {
         if (e) e.preventDefault();
@@ -799,7 +839,7 @@
         if (mode === "qe") {
           var pct = parseFloat(document.getElementById("in-pct").value);
           var yr = parseInt(document.getElementById("f-year").value, 10);
-          if (isNaN(pct)) { results.innerHTML = "<p class='empty'>Enter your 12th %.</p>"; return; }
+          if (isNaN(pct) || pct < 0 || pct > 100) { results.innerHTML = "<p class='empty'>Enter a valid Class-XII % between 0 and 100.</p>"; return; }
           opts.year = yr;
           opts.rank = meritRankForPct(pred, yr, pct);
           stateP.pct = pct; stateP.year = yr;
@@ -859,10 +899,10 @@
             return "<span class='chip'>" + esc(ctx.branchLabel[b] || b) + " <em>" + s.total +
               (s.tfw ? "/" + s.tfw + " TFW" : "") + "</em></span>";
           }).join("");
-          card.innerHTML = "<h3>" + esc(c.name) + "</h3>" +
-            "<p class='muted'>" + esc(c.city || "") + " &middot; " + esc(c.type || "") +
-            (c.university ? " &middot; " + esc(c.university) : "") +
-            " &middot; " + totalSeats + " seats</p><div class='chips'>" + branchChips + "</div>";
+          var meta = [c.city, c.type, c.university, totalSeats + " seats"]
+            .filter(function (x) { return x != null && x !== ""; })
+            .map(function (x) { return esc(String(x)); }).join(" &middot; ");   // join only non-empty (no leading separator for null city)
+          card.innerHTML = "<h3>" + esc(c.name) + "</h3><p class='muted'>" + meta + "</p><div class='chips'>" + branchChips + "</div>";
           results.appendChild(card);
         });
       }

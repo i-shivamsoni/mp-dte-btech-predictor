@@ -591,29 +591,34 @@ def main():
         key=lambda x: (x["median"] is None, x["median"]))
 
     # ---- branch-wise priority ("demand list"): per branch, colleges ranked by demand ----
-    # Pure revealed preference: WITHIN each branch, the more competitive the OPEN/general seat
-    # (lower closing rank), the higher the priority. Score = median UR/OP closing per year, then
-    # median across the last 5 years (robust to 1-seat outliers / year noise). This is PER BRANCH
-    # (a college can top CSE yet sit mid-pack for Mech) — students choose by branch, so one whole-
-    # college ranking would mislead. No institute-type adjustment: the data alone decides the order.
+    # Demand = the OPENING rank of the open/general (UR/X/OP) seat — the BEST-ranked student who
+    # actually chose that college+branch. We use OPENING (not closing): low-demand colleges fill
+    # their general seats down to the very last candidate, so CLOSING ranks all saturate near the
+    # max (~14 lakh in 2025) and can't tell colleges apart, whereas the opening rank discriminates
+    # across the full range and tracks real desirability. Score = median, across years (2021-25),
+    # of that year's Round-1 (RF/FR) UR/X/OP opening (fallbacks: any-round UR/X/OP, then any general
+    # X-class). PER BRANCH; pure data, no institute-type adjustment.
     DEMAND_YEARS = set(range(2021, 2026))
     cb_year = collections.defaultdict(lambda: collections.defaultdict(
-        lambda: {"ur": [], "all": []}))               # (cid,bid) -> year -> {ur:[], all:[]}
+        lambda: {"rf": [], "ur": [], "x": []}))       # (cid,bid) -> year -> openings by specificity
     for r in cutoffs:
         if r["_uni"] != "jee" or r["year"] not in DEMAND_YEARS or not r["_cid"]:
             continue
-        cl = to_int(r.get("closing_rank"))
-        if cl is None:
-            continue
         if (r.get("_class") or "") not in ("", "X"):
             continue                                  # special-quota seats don't define general demand
+        op = to_int(r.get("opening_rank"))
+        if op is None:
+            continue
         slot = cb_year[(r["_cid"], r["_bid"])][r["year"]]
-        slot["all"].append(cl)
+        slot["x"].append(op)                          # any general-class social (fallback)
         if (r.get("_social") or "UR") == "UR" and (r.get("_gender") or "OP") == "OP" and r.get("fw") != "Y":
-            slot["ur"].append(cl)                     # UR/X/OP = toughest open seat = cleanest demand signal
+            slot["ur"].append(op)                     # UR/X/OP open seat
+            if r["_rc"] in ("RF", "FR"):
+                slot["rf"].append(op)                 # Round-1 UR/X/OP opening = cleanest demand signal
     cb_score = {}
     for (cid, bid), yd in cb_year.items():
-        yr_meds = [statistics.median(s["ur"] or s["all"]) for s in yd.values() if (s["ur"] or s["all"])]
+        yr_meds = [statistics.median(s["rf"] or s["ur"] or s["x"])
+                   for s in yd.values() if (s["rf"] or s["ur"] or s["x"])]
         if yr_meds:
             cb_score[(cid, bid)] = int(statistics.median(yr_meds))
     branch_priority = {}                              # branchId -> [[collegeId, demandClosing], ...] best-first

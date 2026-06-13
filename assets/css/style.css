@@ -247,3 +247,7 @@ body[data-page="accuracy"] main.container { max-width: 940px; }
 
 /* Special horizontal-quota pool tag (Divyang / Defence / Freedom-Fighter / NCC) */
 .pool.pool-special { background:#fdeecf; color:#7a4f00; border-color:#e8c98a; }
+
+/* TFW checkbox disabled (other-state domicile — TFW is MP-domicile only) */
+label.f-check.disabled { opacity: .5; cursor: not-allowed; }
+label.f-check.disabled input { cursor: not-allowed; }
