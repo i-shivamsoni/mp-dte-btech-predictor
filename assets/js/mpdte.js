@@ -240,8 +240,10 @@
   function buildMultiFilters(ctx, container, onChange) {
     container.innerHTML = "";
     var ms = {};
+    // Branch is REQUIRED and listed first — results are compared within a branch, so mixing
+    // branches (e.g. an Electrical seat surfacing when you meant CSE) would mislead.
+    ms.branch = MultiSelect(container, { key: "branch", label: "Branch(es) — required", summaryNoun: "branches", onChange: onChange, options: ctx.branches.map(function (b) { return { value: b.id, text: b.label }; }) });
     ms.city = MultiSelect(container, { key: "city", label: "Cities", summaryNoun: "cities", onChange: onChange, options: ctx.cities.map(function (c) { return { value: c, text: c }; }) });
-    ms.branch = MultiSelect(container, { key: "branch", label: "Branches", summaryNoun: "branches", onChange: onChange, options: ctx.branches.map(function (b) { return { value: b.id, text: b.label }; }) });
     ms.type = MultiSelect(container, { key: "type", label: "Institute types", summaryNoun: "types", onChange: onChange, options: (ctx.types || []).map(function (t) { return { value: t, text: t }; }) });
     var colOpts = Object.keys(ctx.colleges).map(function (id) { return ctx.colleges[id]; }).filter(function (c) { return c && !c.historical; })
       .sort(function (a, b) { return (a.name || "").localeCompare(b.name || ""); }).map(function (c) { return { value: c.id, text: c.name + " — " + (c.city || "") }; });
@@ -516,6 +518,10 @@
         if (e) e.preventDefault();
         var rank = parseInt(document.getElementById("in-rank").value, 10);
         if (isNaN(rank)) { results.innerHTML = "<p class='empty'>Enter your JEE rank to simulate.</p>"; return; }
+        if (!ms.branch.values().size) {
+          results.innerHTML = "<p class='empty'>Pick at least one <strong>branch</strong> to simulate. Results are compared <em>within</em> a branch, so a branch must be chosen (you can pick several). Open <strong>&ldquo;Filter by branch&hellip;&rdquo;</strong> below and select your branch(es).</p>";
+          return;
+        }
         var opts = {
           rank: rank, social: document.getElementById("in-cat").value, gender: document.getElementById("in-gender").value,
           domicile: document.getElementById("in-dom").value, tfw: document.getElementById("in-tfw").checked,
@@ -536,6 +542,7 @@
       form.addEventListener("submit", run);
       form.addEventListener("change", function (e) { if (e.target.closest && e.target.closest(".ms")) return; run(); });
       if (p.rank) run();
+      else results.innerHTML = "<p class='empty'>Enter your <strong>JEE rank</strong> and pick at least one <strong>branch</strong> below, then Simulate.</p>";
     }).catch(function (e) { showError(results, e); });
   }
 
