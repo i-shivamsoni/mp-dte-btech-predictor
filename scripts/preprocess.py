@@ -291,6 +291,16 @@ def dom_of(domicile):
     """MP=home-state seat (Y), AI=all-India/open, OTHER=N, ''=unspecified (treat as open)."""
     return {"Y": "MP", "AI": "AI", "N": "OTHER"}.get(str(domicile or "").strip().upper(), "")
 
+def class_of(allotted_category):
+    """Middle field of SOCIAL/CLASS/GENDER = horizontal special quota.
+    'X' (or none) = ordinary seat; S/H/NCC/FF/D/TS = special slots (Sainik, Divyang,
+    Freedom-Fighter, NCC, ...) that a general student does NOT compete in."""
+    p = str(allotted_category or "").split("/")
+    return (p[1].strip().upper() if len(p) >= 3 else "")
+
+def is_special_class(c):
+    return (c or "") not in ("", "X")
+
 def write_json(name, obj):
     os.makedirs(OUTDIR, exist_ok=True)
     path = os.path.join(OUTDIR, name)
@@ -425,6 +435,7 @@ def main():
         r["_cid"] = real if real else synth_college(r)
         r["_social"] = social_of(r.get("allotted_category"))
         r["_gender"] = gender_of(r.get("allotted_category"))
+        r["_class"] = class_of(r.get("allotted_category"))
         r["_dom"] = dom_of(r.get("domicile"))
         r["_home"] = home_flag(r)
         if r.get("year") == 2025:
@@ -435,6 +446,13 @@ def main():
             matched_rows += 1
         else:
             unmatched_rows += 1
+
+    # drop special horizontal-quota seats (middle code != X: Sainik/Divyang/NCC/Freedom-Fighter/…).
+    # They are NOT general seats; a normal candidate doesn't compete in them, and leaving them in
+    # wrongly merged e.g. UR/D/OP + UR/S/OP into the general UR/OP pool. Special slots are not modelled.
+    before_special = len(cutoffs)
+    cutoffs = [r for r in cutoffs if not is_special_class(r.get("_class"))]
+    print(f"dropped {before_special - len(cutoffs)} special-slot (non-X class) seat rows")
 
     # de-dupe split colleges: a synthetic (historical) entry whose normalized name is a leading
     # prefix of a real intake college (e.g. a cut-off name missing the trailing city) is the SAME
