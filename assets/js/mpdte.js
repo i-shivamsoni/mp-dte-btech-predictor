@@ -447,13 +447,17 @@
 
   /* ---- "Top colleges by branch" browsable priority view ---- */
   function initBranchRankings() {
-    var sel = document.getElementById("br-branch"), typeSel = document.getElementById("br-type"), out = document.getElementById("br-list");
+    var sel = document.getElementById("br-branch"), typeSel = document.getElementById("br-type"),
+      citySel = document.getElementById("br-city"), out = document.getElementById("br-list");
     if (!sel || !out) return;
     loadAll(["colleges", "branches", "demand_stats"]).then(function (a) {
       var cols = {}; (a[0].colleges || []).forEach(function (c) { cols[c.id] = c; });
       var blab = {}; (a[1].branches || []).forEach(function (b) { blab[b.id] = b.label; });
       var bp = (a[2] && a[2].branch_priority) || {};
       var types = (a[0].types || []).slice().sort();
+      var cityMap = {};
+      (a[0].colleges || []).forEach(function (c) { if (c.city) cityMap[c.city] = 1; });
+      var cities = Object.keys(cityMap).sort();
       // only branches that actually have a priority list, by label
       var bids = Object.keys(bp).filter(function (b) { return bp[b] && bp[b].length; })
         .sort(function (x, y) { return (blab[x] || x).localeCompare(blab[y] || y); });
@@ -463,6 +467,11 @@
       if (typeSel) {
         typeSel.innerHTML = "<option value=''>All institute types</option>" + types.map(function (t) {
           return "<option value='" + esc(t) + "'>" + esc(t) + "</option>";
+        }).join("");
+      }
+      if (citySel) {
+        citySel.innerHTML = "<option value=''>All cities</option>" + cities.map(function (c) {
+          return "<option value='" + esc(c) + "'>" + esc(c) + "</option>";
         }).join("");
       }
       function rowHtml(item) {
@@ -476,11 +485,18 @@
           "<td class='num'>~" + fmt(pair[1]) + "</td></tr>";
       }
       function render(bid) {
-        var all = bp[bid] || [], total = all.length, type = typeSel ? typeSel.value : "";
-        var lst = all.filter(function (pair) { return !type || ((cols[pair[0]] || {}).type === type); })
+        var all = bp[bid] || [], total = all.length, type = typeSel ? typeSel.value : "",
+          city = citySel ? citySel.value : "";
+        var lst = all.filter(function (pair) {
+          var c = cols[pair[0]] || {};
+          return (!type || c.type === type) && (!city || c.city === city);
+        })
           .map(function (pair, i) { return { pair: pair, rank: i + 1 }; });
         var matchTotal = lst.length, rows = lst.map(rowHtml).join("");
-        var filterNote = type ? " Filtered to <strong>" + esc(type) + "</strong>: <strong>" +
+        var criteria = [];
+        if (type) criteria.push("<strong>" + esc(type) + "</strong>");
+        if (city) criteria.push("<strong>" + esc(city) + "</strong>");
+        var filterNote = criteria.length ? " Filtered to " + criteria.join(" in ") + ": <strong>" +
           matchTotal + "</strong> of " + total + " colleges match." : "";
         out.innerHTML =
           "<p class='muted'>Colleges offering <strong>" + esc(blab[bid] || bid) + "</strong>, ordered by historical demand " +
@@ -489,18 +505,20 @@
           filterNote + "</p>" +
           (matchTotal ? "<div class='table-wrap'><table class='results'><thead><tr><th class='num'>#</th><th>College</th>" +
           "<th>Type</th><th class='num'>Typical closing<br><span class='sub'>open/general</span></th></tr></thead><tbody>" +
-          rows + "</tbody></table></div>" : "<p class='empty'>No colleges match this branch and institute type.</p>");
+          rows + "</tbody></table></div>" : "<p class='empty'>No colleges match this branch and filters.</p>");
       }
-      function syncUrl() { setParams({ b: sel.value, type: typeSel && typeSel.value }); }
+      function syncUrl() { setParams({ b: sel.value, type: typeSel && typeSel.value, city: citySel && citySel.value }); }
       var params = qsParams(), want = params.b;
       if (want && bids.indexOf(want) > -1) sel.value = want; else if (bids.indexOf("cse") > -1) sel.value = "cse";
       if (typeSel && params.type && types.indexOf(params.type) > -1) typeSel.value = params.type;
+      if (citySel && params.city && cities.indexOf(params.city) > -1) citySel.value = params.city;
       render(sel.value);
       sel.addEventListener("change", function () {
         render(sel.value);
         syncUrl();
       });
       if (typeSel) typeSel.addEventListener("change", function () { render(sel.value); syncUrl(); });
+      if (citySel) citySel.addEventListener("change", function () { render(sel.value); syncUrl(); });
     }).catch(function (e) { showError(out, e); });
   }
 
