@@ -54,10 +54,14 @@ permalink: /methodology/
   <code>OBC/X/F</code>), with a separate home-state field. The predictor uses three inputs:
 </p>
 <ul>
-  <li><strong>Category</strong> (social field: UR, OBC, SC, ST, EWS, FW). If you pick a reserved
-    category you also see general (open-pool) seats, each row labelled with the pool it matched.
-    Reservation appears in the JEE rounds; the Qualifying Exam Based Round is general + EWS +
-    fee-waiver only.</li>
+  <li><strong>Category</strong> (UR, OBC, SC, ST, EWS). If you pick a reserved category you also see
+    general (open-pool) seats, each row labelled with the pool it matched. Reservation appears in the
+    JEE rounds; the Qualifying Exam Based Round is general + EWS only.</li>
+  <li><strong>TFW (Tuition Fee Waiver)</strong> is <em>not</em> a category &mdash; it is a
+    supernumerary, income-tested (family income ≤ ₹8 L) fee-waiver pool open to students of
+    <em>any</em> category, with ~5% extra seats and its own (tougher) cut-off. Tick the TFW box and,
+    in addition to your regular seats, you&rsquo;ll see the zero-tuition seats you could get, tagged
+    <span class="pool pool-tfw">TFW</span>. You select your category <em>and</em> TFW together.</li>
   <li><strong>Gender</strong> &mdash; female candidates are eligible for both the open pool and the
     female-only pool (<code>/F</code>), which usually closes at a <em>more lenient</em> rank;
     matched female-pool seats are tagged <span class="pool pool-f">Female</span>.</li>
@@ -66,6 +70,72 @@ permalink: /methodology/
     pool (tagged <span class="pool muted">AI</span>). Non-MP candidates can only take AI / open
     seats, so selecting &ldquo;Other state&rdquo; removes the MP-only seats &mdash; including most
     OBC/SC/ST reservation, which requires MP domicile.</li>
+</ul>
+
+<h2>Official MP-DTE admission rules (2026-27)</h2>
+<p>The predictor enforces the rules below, taken from the official MP-DTE B.Tech admission rule book.</p>
+
+<h3>1. Reservation matrix</h3>
+<p><strong>Vertical (social)</strong> reservation &mdash; you belong to exactly one social category:</p>
+<table class="results">
+  <thead><tr><th>Category</th><th>Code</th><th>Reservation</th></tr></thead>
+  <tbody>
+    <tr><td>Unreserved / General</td><td><code>UR</code></td><td>Open pool</td></tr>
+    <tr><td>Scheduled Caste</td><td><code>SC</code></td><td>16%</td></tr>
+    <tr><td>Scheduled Tribe</td><td><code>ST</code></td><td>20%</td></tr>
+    <tr><td>Other Backward Classes (non-creamy-layer)</td><td><code>OBC</code></td><td>14%</td></tr>
+    <tr><td>Economically Weaker Section</td><td><code>EWS</code></td><td>10%</td></tr>
+  </tbody>
+</table>
+<p><strong>Horizontal</strong> reservations apply <em>within</em> each social category &mdash; they cut across, not stack as a separate vertical quota:</p>
+<table class="results">
+  <thead><tr><th>Type</th><th>Code</th><th>Reservation</th></tr></thead>
+  <tbody>
+    <tr><td>Female</td><td><code>F</code></td><td>30% (compartmentalised, within each category &amp; class)</td></tr>
+    <tr><td>Divyang (persons with disability)</td><td><code>D</code></td><td>3% (all categories)</td></tr>
+    <tr><td>Sainik / ex-servicemen wards</td><td><code>S</code></td><td>5% UR / 3% SC / 3% ST / 1% OBC</td></tr>
+    <tr><td>NCC &lsquo;B&rsquo; certificate</td><td><code>NCC</code></td><td>2%</td></tr>
+    <tr><td>Freedom Fighter ward</td><td><code>FF</code></td><td>as notified</td></tr>
+  </tbody>
+</table>
+
+<h3>2. The MP-domicile rule (the most important filter)</h3>
+<p>
+  <strong>Reservation (SC / ST / OBC / EWS), the female 30% pool and the TFW fee-waiver apply to
+  Madhya Pradesh domicile candidates only</strong> (MP local-residency certificate required). If you are
+  <em>not</em> an MP-domicile candidate (select &ldquo;Other state&rdquo;):
+</p>
+<ul>
+  <li><strong>Government, government-aided &amp; university institutes:</strong> you can take <em>only the 5% All-India (AI) seats</em> &mdash; no reservation benefit.</li>
+  <li><strong>Private (self-financing) institutes:</strong> the <em>unreserved / general-pool (UR)</em> seats are open to you; reserved private seats remain MP-only.</li>
+  <li><strong>Exemptions:</strong> Sainik and J&amp;K (migrant / resident) candidates are exempt from the domicile requirement.</li>
+</ul>
+<p>Seat pools overall: MP-domicile <strong>85&ndash;90%</strong>, All-India <strong>5%</strong>, NRI <strong>5%</strong>, NTPC <strong>5%</strong> (UIT-Shivpuri only), plus supernumerary J&amp;K seats.</p>
+
+<h3>3. TFW &mdash; Tuition Fee Waiver</h3>
+<ul>
+  <li><strong>5% supernumerary</strong> seats (over and above the sanctioned intake).</li>
+  <li>Family income <strong>&le; &#8377;8 lakh</strong> per year.</li>
+  <li>Open to <strong>any social category</strong> &mdash; it is <em>not</em> a category itself.</li>
+  <li><strong>MP-domicile only.</strong> Only <strong>tuition fee</strong> is waived; other fees apply.</li>
+  <li><strong>No branch or college change</strong> once admitted on a TFW seat.</li>
+</ul>
+
+<h3>4. Category-code legend</h3>
+<p>Each seat pool is encoded <code>SOCIAL / CLASS / GENDER</code> &mdash; e.g. <code>UR/X/OP</code>, <code>OBC/X/F</code>, <code>UR/S/OP</code>.</p>
+<table class="results">
+  <thead><tr><th>Field</th><th>Codes</th></tr></thead>
+  <tbody>
+    <tr><td><strong>SOCIAL</strong></td><td><code>UR</code> &middot; <code>SC</code> &middot; <code>ST</code> &middot; <code>OBC</code> &middot; <code>EWS</code> &middot; <code>FW</code> (fee-waiver)</td></tr>
+    <tr><td><strong>CLASS</strong> (horizontal)</td><td><code>X</code> none &middot; <code>S</code> Sainik &middot; <code>D</code> Divyang &middot; <code>NCC</code> &middot; <code>FF</code> Freedom Fighter &middot; <code>TS</code> special</td></tr>
+    <tr><td><strong>GENDER</strong></td><td><code>OP</code> open (any gender) &middot; <code>F</code> female-only pool</td></tr>
+  </tbody>
+</table>
+
+<h3>5. Eligibility</h3>
+<ul>
+  <li>Pass <strong>10+2</strong> with the required subjects: PCM for most branches; Physics + Maths + one of 14 notified subjects for the CS/IT family; agriculture stream for Agriculture branches.</li>
+  <li>Minimum <strong>45% aggregate</strong> across the three subjects (<strong>40%</strong> for MP-domicile SC / ST / OBC).</li>
 </ul>
 
 <h2>Important limitations</h2>

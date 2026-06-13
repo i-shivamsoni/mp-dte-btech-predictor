@@ -84,28 +84,53 @@ CANON = {
     "food": "Food Technology",
     "dairy": "Dairy Technology",
     "fire-safety": "Fire Technology & Safety",
+    # added to match the official 2026-27 branch-code list (rule book p.73-74)
+    "comp-sci": "Computer Science",
+    "cs-tech": "Computer Science & Technology",
+    "cse-ai-ds": "CSE (AI & Data Science)",
+    "cse-iot-cyber": "CSE (IoT, Cyber Security & Block Chain)",
+    "cyber-security": "Cyber Security",
+    "ee-iot": "Electrical Engineering (IoT)",
+    "applied-ei": "Applied Electronics & Instrumentation",
+    "elec-comp-eng": "Electronics & Computer Engineering",
+    "robotics-mechatronics": "Robotics & Mechatronics",
+    "mech-automation": "Mechanical & Automation Engineering",
+    "aircraft-maintenance": "Aircraft Maintenance Engineering",
+    "aeronautical": "Aeronautical Engineering",
+    "biomedical-robotic": "Biomedical & Robotic Engineering",
+    "civil-rural": "Civil & Rural Engineering",
+    "construction-automation": "Construction Automation",
+    "mining-mineral": "Mining & Mineral Processing",
+    "iem": "Industrial Engineering & Management",
+    "production": "Production Engineering",
+    "animation-graphics": "3D Animation & Graphics",
+    "textile": "Textile Technology",
     "other": "Other / Unclassified",
 }
 
-# Cut-off abbreviation -> canonical id. High-volume codes are confident; the long
-# tail is best-effort (a few ambiguous/garbled codes fall through to 'other').
+# Cut-off abbreviation -> canonical id, aligned to the OFFICIAL MP-DTE branch-code
+# list (2026-27 rule book p.73-74). EACE/CEWCA/EAPE/LG are not in that list (best-effort).
 CUTOFF_BRANCH = {
     "CSE": "cse", "CE": "civil", "MECH": "mech", "EC": "ece", "IT": "it", "EE": "ee",
     "ELECT ELEX": "eee", "ELECT ELE": "eee", "CSEIML": "cse-aiml", "CSEDS": "cse-ds",
     "EI": "ei", "CHEM": "chem", "AIAIDS": "ai-ds", "IP": "ip", "AUTO": "auto",
     "AIML": "aiml", "AIADS": "ai-ds", "CSECS": "cse-cyber", "CSIT": "cs-it",
-    "CSBS": "cse-bs", "EL": "ee", "ET": "etc", "CSEITCS": "cse-cyber", "BM": "bme",
-    "MINING": "mining", "CSD": "cse-ds", "CSEAIADS": "ai-ds", "PCT": "petro",
+    "CSBS": "cse-bs", "EL": "electronics", "ET": "etc", "CSEITCS": "cse-iot-cyber", "BM": "bme",
+    "MINING": "mining", "CSD": "cse-design", "CSEAIADS": "cse-ai-ds", "PCT": "petro",
     "CSEIOT": "cse-iot", "MAC": "math-comp", "FTS": "fire-safety", "MTENG": "mechatronics",
     "ITAIAR": "it-ai-robotics", "INOT": "iot", "ITIOT": "iot", "CSEAI": "cse-ai",
-    "CSEBC": "cse-bc", "EEIOT": "iot", "ECS": "ec-cs", "AIR": "robotics-ai",
-    "ECACT": "ec-adv", "AI": "ai", "BEIL": "other", "CST": "cs-it", "CSEIL": "cse-aiml",
-    "CERE": "other", "FOOD": "food", "CEng": "civil", "BT": "biotech", "AG": "agri",
-    "PCE": "petro", "AGE": "agri", "ARE": "agri", "CSERC": "cse", "EACE": "elec-comp",
-    "EEVDT": "ec-vlsi", "CEWCA": "civil-comp", "CMPS": "cse", "AGRITECH": "agri",
-    "CYSEC": "cse-cyber", "MMP": "other", "EV": "ev", "MAE": "mech", "CA": "other",
-    "CSEAIDS": "ai-ds", "EAPE": "other", "SFE": "fire-safety", "CSEIT": "cs-it",
-    "AME": "mech", "RAM": "robotics-ai", "LG": "other", "AEIE": "ei", "DS": "data-science",
+    "CSEBC": "cse-bc", "EEIOT": "ee-iot", "ECS": "ec-cs", "AIR": "robotics-ai",
+    "ECACT": "ec-adv", "AI": "ai", "BEIL": "bme", "CST": "cs-tech", "CSEIL": "cse",
+    "CERE": "civil-rural", "FOOD": "food", "CEng": "cse", "BT": "biotech", "AG": "agri",
+    "PCE": "petro", "AGE": "agri", "ARE": "automation-robotics", "CSERC": "cse",
+    "EEVDT": "ec-vlsi", "CEWCA": "civil-comp", "EACE": "elec-comp", "CMPS": "comp-sci", "AGRITECH": "agri",
+    "CYSEC": "cyber-security", "MMP": "mining-mineral", "EV": "ev", "MAE": "mech-automation",
+    "CA": "construction-automation", "CSEAIDS": "cse-ai-ds", "EAPE": "other",
+    "SFE": "fire-safety", "CSEIT": "cse-iot", "AME": "aircraft-maintenance",
+    "RAM": "robotics-mechatronics", "LG": "other", "AEIE": "applied-ei", "DS": "data-science",
+    "AERONAUTICAL": "aeronautical", "BRE": "biomedical-robotic", "COMP": "comp-sci",
+    "ECOMME": "elec-comp-eng", "IEM": "iem", "PRODUCTION": "production",
+    "DAG": "animation-graphics", "TX": "textile", "EX": "electronics", "IOT": "iot",
 }
 
 INTAKE_BRANCH = {
@@ -117,20 +142,20 @@ INTAKE_BRANCH = {
     "Automobile Engineering": "auto", "Bio-Medical Engineering": "bme",
     "CIVIL ENGINEERING WITH COMPUTER APPLICATION": "civil-comp",
     "COMPUTER SCIENCE AND BUSINESS SYSTEM": "cse-bs",
-    "COMPUTER SCIENCE AND ENGINEERING (ARTIFICIAL INTELLIGENCE AND DATA SCIENCE)": "ai-ds",
+    "COMPUTER SCIENCE AND ENGINEERING (ARTIFICIAL INTELLIGENCE AND DATA SCIENCE)": "cse-ai-ds",
     "COMPUTER SCIENCE AND ENGINEERING (ARTIFICIAL INTELLIGENCE)": "cse-ai",
     "COMPUTER SCIENCE AND ENGINEERING (BLOCK CHAIN)": "cse-bc",
     "COMPUTER SCIENCE AND ENGINEERING(ARTIFICIAL INTELLIGENCE AND MACHINE LEARNING)": "cse-aiml",
     "COMPUTER SCIENCE AND ENGINEERING(CYBER SECURITY)": "cse-cyber",
     "COMPUTER SCIENCE AND ENGINEERING(DATA SCIENCE)": "cse-ds",
-    "COMPUTER SCIENCE AND ENGINEERING(INTERNET OF THINGS AND CYBER SECURITY INCLUDING BLOCK CHAIN TECHNOLOGY)": "cse-iot",
+    "COMPUTER SCIENCE AND ENGINEERING(INTERNET OF THINGS AND CYBER SECURITY INCLUDING BLOCK CHAIN TECHNOLOGY)": "cse-iot-cyber",
     "COMPUTER SCIENCE AND ENGINEERING(IOT)": "cse-iot", "Chemical Engineering": "chem",
     "Civil Engineering": "civil", "Computer Engineering": "cse",
     "Computer Science & Engineering (Regional Courses-Hindi)": "cse",
     "Computer Science and Design": "cse-design", "Computer Science and Engineering": "cse",
     "Computer Science and Engineering-Indian language (Hindi)": "cse",
     "Computer Science and Information Technology": "cs-it",
-    "Computer Science and Technology": "cs-it", "DATA SCIENCE": "data-science",
+    "Computer Science and Technology": "cs-tech", "DATA SCIENCE": "data-science",
     "Dairy Technology": "dairy", "ELECTRIC VEHICLES": "ev",
     "ELECTRICAL AND COMPUTER ENGINEERING": "elec-comp",
     "ELECTRONICS AND COMPUTER SCIENCE": "ec-cs",
@@ -177,11 +202,15 @@ def norm_name(s):
     return re.sub(r"\s+", " ", s).strip()
 
 def extract_city(name):
+    raw = None
     m = re.search(r",\s*([A-Za-z .]+?)\s*\(\s*\d{4}\s*\)\s*$", name or "")
-    if m:
-        c = m.group(1).strip()
-        if c:
-            return c
+    if m and m.group(1).strip():
+        raw = m.group(1).strip()
+    if raw:
+        for c in MP_CITIES:                       # canonicalize casing/spelling (BHOPAL -> Bhopal)
+            if raw.lower() == c.lower():
+                return c
+        return raw.title()
     low = (name or "").lower()
     for c in MP_CITIES:
         if re.search(r"\b" + re.escape(c.lower()) + r"\b", low):
@@ -363,6 +392,22 @@ def main():
         synth[nn] = sid
         return sid
 
+    # Per-row HOME-STATE flag enforcing the official MP-domicile rules (R3/R7/R8/R9):
+    #   home=1  -> seat is MP-domicile-only (reservation/TFW/EWS anywhere; UR at govt/aided/univ)
+    #   home=0  -> seat is open to non-domicile (All-India seats; UR/general at PRIVATE colleges)
+    def home_flag(r):
+        dom = r.get("_dom")
+        if dom in ("AI", "OTHER"):
+            return 0
+        if dom == "MP":
+            return 1
+        social = r.get("_social") or "UR"
+        ctype = (colleges.get(r.get("_cid")) or {}).get("type", "")
+        is_private = ctype.startswith("Private")
+        if social == "UR":
+            return 0 if is_private else 1          # private UR open to all; govt UR is MP-only
+        return 1                                   # reserved / fee-waiver / special -> MP-only
+
     # ---- 2. annotate every cut-off row (round_code, universe, branch, college, pools) ----
     unmapped = collections.Counter()
     matched_rows = unmatched_rows = 0
@@ -380,6 +425,7 @@ def main():
         r["_social"] = social_of(r.get("allotted_category"))
         r["_gender"] = gender_of(r.get("allotted_category"))
         r["_dom"] = dom_of(r.get("domicile"))
+        r["_home"] = home_flag(r)
         if r.get("year") == 2025:
             total_2025 += 1
             if real:
@@ -393,11 +439,12 @@ def main():
     seen_ids = {r["_cid"] for r in cutoffs if r["_cid"]}
     # (intake colleges already in `colleges`; historical-only handled in UI via null seats)
 
-    COLS = ["c", "b", "yr", "rd", "cat", "gen", "fw", "dom", "op", "cl", "al"]
+    COLS = ["c", "b", "yr", "rd", "cat", "gen", "fw", "dom", "home", "op", "cl", "al"]
     def row_of(r, cl):
         return [
             r["_cid"], r["_bid"], r["year"], r["_rc"], r.get("_social") or "UR",
             r.get("_gender") or "OP", 1 if (r.get("fw") == "Y") else 0, r.get("_dom") or "",
+            r.get("_home", 1),
             to_int(r.get("opening_rank")) or cl, cl, to_int(r.get("total_allotted")) or 0,
         ]
 
@@ -485,11 +532,14 @@ def main():
             if cls:
                 trend[bid][yr] = med(cls)
 
+    # "Most in-demand" = most seats actually filled (popularity). Median closing is a poor
+    # demand signal for branches because it's diluted by how many easy colleges offer them
+    # (e.g. CSE has the most seats + the single most competitive seat, but a high median).
     demand_branches = sorted(
         [{"b": bid, "label": CANON.get(bid, bid), "seats": v["seats"],
           "median": med(v["closings"]), "best": min(v["closings"]) if v["closings"] else None}
          for bid, v in by_branch.items() if v["closings"]],
-        key=lambda x: (x["median"] is None, x["median"]))
+        key=lambda x: -x["seats"])
     demand_colleges = sorted(
         [{"c": cid, "name": colleges.get(cid, {}).get("name", cid),
           "city": colleges.get(cid, {}).get("city"),
@@ -524,7 +574,8 @@ def main():
         "branches": [{"id": k, "label": v} for k, v in CANON.items()]})
     sizes["categories.json"] = write_json("categories.json", {
         "codebook": CATEGORIES, "main": MAIN_CATEGORIES})
-    cities_sorted = sorted({c["city"] for c in colleges.values() if c["city"]})
+    cities_sorted = sorted({c["city"] for c in colleges.values()
+                            if c["city"] and not c.get("historical")})
     sizes["cities.json"] = write_json("cities.json", {"cities": cities_sorted})
     inst_types = sorted({c["type"] for c in colleges.values() if c.get("type")})
     sizes["colleges.json"] = write_json("colleges.json", {

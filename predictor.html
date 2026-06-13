@@ -1,49 +1,56 @@
 ---
 page_id: jee
-title: JEE Rank Predictor
-subtitle: First Round / Upgrade / Second Round — ranked on your JEE Main Common Rank.
+title: Probable Counselling Simulator
+subtitle: Which college, branch & seat-pool you can probably get — and in which counselling round.
 permalink: /predictor/
 ---
-<form id="predict-form" class="predict-form" autocomplete="off">
+<form id="sim-form" class="predict-form" autocomplete="off">
   <div class="primary-input">
     <div class="f-group">
       <label for="in-rank">Your JEE Main rank (Common Rank / CRL)</label>
-      <input type="number" id="in-rank" min="1" step="1" placeholder="e.g. 50000" required>
+      <input type="number" id="in-rank" min="1" step="1" inputmode="numeric" placeholder="e.g. 50000" required>
     </div>
     <div class="f-group">
       <label for="in-cat">Category</label>
       <select id="in-cat">
         <option value="UR">UR / General</option>
-        <option value="OBC">OBC</option>
-        <option value="SC">SC</option>
-        <option value="ST">ST</option>
-        <option value="EWS">EWS</option>
-        <option value="FW">Fee Waiver (TFW)</option>
+        <option value="OBC">OBC</option><option value="SC">SC</option>
+        <option value="ST">ST</option><option value="EWS">EWS</option>
       </select>
     </div>
     <div class="f-group">
       <label for="in-gender">Gender</label>
-      <select id="in-gender">
-        <option value="M">Male</option>
-        <option value="F">Female</option>
-      </select>
+      <select id="in-gender"><option value="M">Male</option><option value="F">Female</option></select>
     </div>
     <div class="f-group">
       <label for="in-dom">Domicile</label>
-      <select id="in-dom">
-        <option value="mp">MP (domicile)</option>
-        <option value="other">Other state</option>
-      </select>
+      <select id="in-dom"><option value="mp">MP (domicile)</option><option value="other">Other state</option></select>
     </div>
-    <button type="submit" class="btn-primary">Show my colleges</button>
+    <button type="submit" class="btn-primary">Simulate my counselling</button>
   </div>
+
+  <div class="f-group f-group-check sim-tfw">
+    <label class="f-check">
+      <input type="checkbox" id="in-tfw">
+      I&rsquo;m eligible for <strong>Tuition Fee Waiver (TFW)</strong> &mdash; family income &le; &#8377;8&nbsp;L
+      <span class="pool pool-tfw">TFW</span>
+    </label>
+  </div>
+
   <p class="hint muted">
-    Domicile and gender change which seat pools you&rsquo;re eligible for — non-MP candidates
-    can&rsquo;t take MP home-state-only seats, and female candidates also get the (easier) female pools.
+    This builds the <strong>ranked choice list you should fill</strong> on the DTE portal: every seat-pool you&rsquo;re
+    <strong>individually eligible for</strong>, toughest-first &mdash; so TFW and reserved pools sit above the general
+    seat at the same college. You&rsquo;re allotted <strong>at most one seat per round, by merit</strong> &mdash; this is
+    not a basket you all receive. Domicile &amp; gender change eligibility: non-MP candidates can&rsquo;t take MP
+    home-state seats; female candidates also get the (easier) female pools.
   </p>
+
   <details class="filters-wrap" open>
-    <summary>Filters</summary>
-    <div id="filters" class="filters"></div>
+    <summary>Filter by city, branch, type &amp; college (choose several)</summary>
+    <div id="filters" class="filters filters-multi"></div>
+    <label class="f-check sim-group-toggle">
+      <input type="checkbox" id="in-group"> Group a college&rsquo;s pools together (TFW directly above its general seat)
+    </label>
   </details>
 </form>
 

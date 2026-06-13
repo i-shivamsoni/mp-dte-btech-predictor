@@ -65,10 +65,11 @@
 
   function render(d) {
     // 1. most in-demand branches: 15 lowest median closing (most competitive)
-    var br = d.branches.filter(function (b) { return b.median != null; }).slice(0, 15);
+    // most in-demand = most seats actually filled (popularity); branches arrive seats-sorted.
+    var br = d.branches.slice(0, 15);
     barH("chart-branches", br.map(function (b) { return b.label; }),
-      br.map(function (b) { return b.median; }),
-      "Median closing rank (" + d.latest_year + ")", "Median closing rank — shorter = more in demand");
+      br.map(function (b) { return b.seats; }),
+      "Seats filled (" + d.latest_year + ")", "Seats filled (latest year) — longer = more in demand");
 
     // 2. colleges table
     colTable(d);
