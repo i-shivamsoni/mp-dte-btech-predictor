@@ -190,6 +190,21 @@ MP_CITIES = [
     "Barwani", "Jhabua", "Pithampur", "Hoshangabad", "Narmadapuram", "Gwalior",
 ]
 
+# Historical cut-off names that should resolve to current 2026-27 seat-matrix ids.
+# Keep this as an explicit bridge: these are institution renames/ownership-name changes,
+# not fuzzy matches that should generalize across unrelated colleges.
+CUTOFF_NAME_TO_CURRENT_ID = {
+    "School of Engineering and Technology, Vikram University, Ujjain": "5005",
+}
+
+# Bad OCR fragments that refer to a fuller historical synthetic record. These fragments
+# have no parseable rank rows, but without this map they leak into colleges.json as
+# empty history pages.
+HISTORICAL_NAME_TO_HISTORICAL_NAME = {
+    "ITM GROUP OF INSTITUTIONS (Technical Campus) (Formerly: Institute o":
+        "ITM GROUP OF INSTITUTIONS (Technical Campus) (Formerly: Institute of Technology & Mgmt., Gwalior)",
+}
+
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
@@ -458,13 +473,20 @@ def main():
     # de-dupe split colleges: a synthetic (historical) entry whose normalized name is a leading
     # prefix of a real intake college (e.g. a cut-off name missing the trailing city) is the SAME
     # college -> remap its rows to the real id and drop the synthetic, so it isn't listed twice.
+    # Explicit maps handle official rename cases and OCR fragments that heuristics cannot infer.
     real_norm = {norm_name(c["name"]): cid for cid, c in colleges.items() if not c.get("historical")}
+    historical_norm = {norm_name(c["name"]): cid for cid, c in colleges.items() if c.get("historical")}
+    manual_current = {norm_name(k): v for k, v in CUTOFF_NAME_TO_CURRENT_ID.items()}
+    manual_historical = {
+        norm_name(src): historical_norm.get(norm_name(dst))
+        for src, dst in HISTORICAL_NAME_TO_HISTORICAL_NAME.items()
+    }
     remap = {}
     for hid, c in list(colleges.items()):
         if not c.get("historical"):
             continue
         hn = norm_name(c["name"]); ht = hn.split()
-        tgt = real_norm.get(hn)
+        tgt = manual_current.get(hn) or manual_historical.get(hn) or real_norm.get(hn)
         if not tgt and len(ht) >= 4:
             for rn, rid in real_norm.items():
                 rt = rn.split()
@@ -478,7 +500,20 @@ def main():
                 r["_cid"] = remap[r["_cid"]]
         for hid in remap:
             colleges.pop(hid, None)
-        print(f"de-duped {len(remap)} split college entries: {', '.join(sorted(remap))}")
+        print(f"de-duped/remapped {len(remap)} split college entries: {', '.join(sorted(remap))}")
+
+    # Drop synthetic historical colleges that have no parseable JEE/QE rank rows. They come from
+    # OCR fragments with string ranks, so they cannot power predictor rows or history pages.
+    usable_history_ids = set()
+    for r in cutoffs:
+        if r["_uni"] in ("jee", "qe") and to_int(r.get("closing_rank")) is not None:
+            usable_history_ids.add(r["_cid"])
+    empty_historical = sorted(cid for cid, c in colleges.items()
+                              if c.get("historical") and cid not in usable_history_ids)
+    if empty_historical:
+        for cid in empty_historical:
+            colleges.pop(cid, None)
+        print(f"dropped {len(empty_historical)} empty historical entries: {', '.join(empty_historical)}")
 
     # colleges that appear in cut-offs but not in 2026-27 intake -> historical entries
     seen_ids = {r["_cid"] for r in cutoffs if r["_cid"]}
