@@ -329,6 +329,17 @@
     return dedupePools(body2.concat(safe.slice(0, 3))).sort(byPref);       // ~25-28, dream -> safe anchors
   }
 
+  // college name -> link to its cut-off-history page (/college/?id=). Inline (keeps surrounding markup);
+  // falls back to plain text when no id is available.
+  function coLink(cid, name) {
+    return cid ? "<a class='co-link' href='" + BASE + "/college/?id=" + encodeURIComponent(cid) + "'>" + esc(name) + "</a>" : esc(name);
+  }
+  // explicit "view history" call-to-action for table rows (where a clickable name isn't obvious)
+  function coCta(cid) {
+    return cid ? "<a class='row-cta' href='" + BASE + "/college/?id=" + encodeURIComponent(cid) +
+      "'>View cut-off history 2017&ndash;2025 &rarr;</a>" : "";
+  }
+
   function renderSimulation(results, container, opts) {
     container.innerHTML = "";
     var reachable = results.filter(function (r) { return !r.outOfReach; });
@@ -369,7 +380,7 @@
         ol.innerHTML = ""; lines = [];
         picks.forEach(function (r, i) {
           var li = el("li"); var oor = r.outOfReach;
-          li.innerHTML = "<span class='co-name'>" + esc(r.college) + "</span> &mdash; " + esc(r.branch) + " " + poolTag(r) +
+          li.innerHTML = "<span class='co-name'>" + coLink(r.cid, r.college) + "</span> &mdash; " + esc(r.branch) + " " + poolTag(r) +
             " <span class='co-rd sub'>" + (oor ? "stretch &middot; closed ~" + fmt(r.bestClosing) : BUCKET_SHORT[r.bucket] + " &middot; ~" + fmt(r.closing)) +
             " &middot; " + (oor ? "Reach+" : r.band) + "</span>";
           ol.appendChild(li);
@@ -517,7 +528,7 @@
       var tr = el("tr", "row-" + r.band.toLowerCase());
       tr.innerHTML =
         "<td class='num pref-no'>" + (bucket === "out" ? "&mdash;" : counter.v) + "</td>" +   // per-round position (best-first)
-        "<td><span class='co-name'>" + esc(r.college) + hist + "</span><span class='sub'>" + esc(r.branch) + horizonBadge(r.avail) + "</span></td>" +
+        "<td><span class='co-name'>" + coLink(r.cid, r.college) + hist + "</span><span class='sub'>" + esc(r.branch) + horizonBadge(r.avail) + "</span>" + coCta(r.cid) + "</td>" +
         "<td>" + poolTag(r) + domTag(r) + "</td>" +
         "<td>" + esc(r.city) + "<span class='sub'>" + esc(r.type) + "</span></td>" +
         "<td class='num'>" + fmt(r.closing == null ? r.bestClosing : r.closing) + " <span class='sub'>" + closeSub + "</span></td>" +
@@ -585,7 +596,7 @@
           .map(function (k) { return RLAB[k] + "&nbsp;" + fmt(pair[k]); }).join(" &middot; ");
         return "<tr" + (seq === 1 ? " class='br-top'" : "") + ">" +
           "<td class='num'>" + numCell + "</td>" +
-          "<td><span class='co-name'>" + esc(c.name || pair[0]) + "</span><span class='sub'>" + esc(c.city || "") + "</span></td>" +
+          "<td><span class='co-name'>" + coLink(pair[0], c.name || pair[0]) + "</span><span class='sub'>" + esc(c.city || "") + "</span>" + coCta(pair[0]) + "</td>" +
           "<td><span class='pool " + (govt ? "" : "muted") + "'>" + esc(t) + "</span></td>" +
           "<td class='num'><span class='demand-v'>" + fmt(item.val) + "</span><span class='sub'>" + others + "</span></td>" +
           "<td>" + (horizonBadge((avail[pair[0]] || {})[bid]) || "<span class='muted sub'>&mdash;</span>") + "</td></tr>";
@@ -749,6 +760,7 @@
       var seats = (ctx.intake[g._cid] || {})[g._bid] || null;
       var b = band(opts.rank, g._cl);
       out.push({
+        cid: g._cid,
         college: col.name || ("College " + g._cid), city: col.city || "—",
         type: col.type || "—", branch: ctx.branchLabel[g._bid] || g._bid,
         closing: g._cl, opening: g._op, year: g._yr, round: g._rd,
@@ -771,10 +783,19 @@
   function buildFilters(ctx, container, opts) {
     opts = opts || {};
     container.innerHTML = "";
-    function group(labelText, control) {
-      var g = el("div", "f-group");
+    function group(labelText, control, extraClass) {
+      var g = el("div", "f-group" + (extraClass ? " " + extraClass : ""));
       var l = el("label", null, labelText); l.setAttribute("for", control.id);
       g.appendChild(l); g.appendChild(control); container.appendChild(g);
+    }
+    // Search by college name / city (explorer only — opts.search)
+    var search = null;
+    if (opts.search) {
+      search = el("input"); search.type = "search"; search.id = "f-search";
+      search.placeholder = opts.searchPlaceholder || "Type a college name or city…";
+      search.setAttribute("aria-label", "Search colleges by name or city");
+      search.autocomplete = "off";
+      group("Search college", search, "f-group-search");
     }
     // City
     var city = el("select"); city.id = "f-city";
@@ -802,7 +823,7 @@
     fwWrap.appendChild(document.createTextNode(" " + (opts.fwLabel || "Tuition Fee Waiver (TFW) seats")));
     var fwGroup = el("div", "f-group f-group-check"); fwGroup.appendChild(fwWrap);
     container.appendChild(fwGroup);
-    return { city: city, branch: branch, type: type, fw: fw };
+    return { city: city, branch: branch, type: type, fw: fw, search: search };
   }
 
   /* ---------- shared UI: results table ---------- */
@@ -908,7 +929,7 @@
       var tr = el("tr", "row-" + r.band.toLowerCase());
       tr.innerHTML =
         "<td class='num pref-no'>" + n + "</td>" +
-        "<td>" + esc(r.college) + hist + "</td>" +
+        "<td>" + coLink(r.cid, r.college) + hist + coCta(r.cid) + "</td>" +
         "<td>" + esc(r.city) + "</td>" +
         "<td>" + esc(r.branch) + pool + "</td>" +
         "<td>" + esc(r.type) + "</td>" +
@@ -1051,11 +1072,14 @@
     var filtersBox = document.getElementById("filters");
     loadAll(["colleges", "branches", "cities", "intake"]).then(function (a) {
       var ctx = buildContext(a[0], a[1], a[2], a[3], {});
-      var fc = buildFilters(ctx, filtersBox, { fwLabel: "Only colleges offering TFW (fee-waiver) seats" });
+      var fc = buildFilters(ctx, filtersBox, { fwLabel: "Only colleges offering TFW (fee-waiver) seats",
+        search: true, searchPlaceholder: "Type a college name or city…" });
       function run() {
         var city = fc.city.value, type = fc.type.value, bid = fc.branch.value, fwOnly = fc.fw.checked;
+        var q = (fc.search && fc.search.value || "").trim().toLowerCase();
         var list = a[0].colleges.filter(function (c) {
           if (c.historical) return false;           // explorer shows current 2026-27 colleges only
+          if (q && (c.name || "").toLowerCase().indexOf(q) < 0 && (c.city || "").toLowerCase().indexOf(q) < 0) return false;
           if (city && c.city !== city) return false;
           if (type && c.type !== type) return false;
           var seats = ctx.intake[c.id] || {};
@@ -1083,12 +1107,14 @@
             .map(function (x) { return esc(String(x)); }).join(" &middot; ");   // join only non-empty (no leading separator for null city)
           var href = BASE + "/college/?id=" + encodeURIComponent(c.id);
           card.innerHTML = "<h3><a href='" + href + "'>" + esc(c.name) + "</a></h3>" +
-            "<p class='muted'>" + meta + "</p><div class='chips'>" + branchChips + "</div>" +
-            "<p class='card-cta'><a href='" + href + "'>View cut-off history 2017&ndash;2025 &rarr;</a></p>";
+            "<p class='muted'>" + meta + "</p><div class='chips'>" + branchChips + "</div>";
+          card.style.cursor = "pointer";   // whole card opens the college page (title already links too)
+          card.addEventListener("click", function (e) { if (!e.target.closest("a")) location.href = href; });
           results.appendChild(card);
         });
       }
-      buildFilters && filtersBox.addEventListener("change", run);
+      filtersBox.addEventListener("change", run);
+      if (fc.search) fc.search.addEventListener("input", run);   // live search as you type
       run();
     }).catch(function (e) { showError(results, e); });
   }
@@ -1104,6 +1130,19 @@
     SR: "Second Round", QR: "Qualifying-Exam Round", TR: "Qualifying-Exam (TFW)" };
   // counselling sequence, so sorting the Round column is chronological, not alphabetical
   var ROUND_ORDER = { RF: 1, FR: 1, FU: 2, SR: 3, QR: 4, TR: 5 };
+  var GENDER_LABEL = { OP: "Open", F: "Female", M: "Male" };
+  // split a pool code (SOCIAL[/CLASS]/GENDER, e.g. UR/X/OP, FW/OP, EWS) into its dimensions,
+  // mirroring preprocess.py's social_of / class_of / gender_of so the filters match the engine.
+  function parsePool(pool) {
+    var p = String(pool || "").split("/");
+    var gen = (p.length >= 3) ? p[2] : (p.length === 2 ? p[1] : "");
+    gen = (gen || "").trim().toUpperCase();
+    return {
+      soc: (p[0] || "").trim(),
+      cls: (p.length >= 3) ? (p[1] || "").trim().toUpperCase() : "",
+      gen: (gen === "F" || gen === "M") ? gen : "OP",
+    };
+  }
   function uniqSort(arr) {
     return Array.from(new Set(arr)).sort(function (a, b) { return String(a).localeCompare(String(b)); });
   }
@@ -1133,9 +1172,13 @@
         "<strong>Qualifying-Exam</strong> rounds use the 12th-% merit rank &mdash; different scales, " +
         "never compare a rank across the two.</p>";
 
+      var parsed = rows.map(function (r) { return parsePool(r[ix.pool]); });
       var branches = uniqSort(rows.map(function (r) { return r[ix.b]; }));
       var years = H.years.slice().sort(function (x, y) { return y - x; });
-      var cats = uniqSort(rows.map(function (r) { return String(r[ix.pool]).split("/")[0]; }));
+      var cats = uniqSort(parsed.map(function (p) { return p.soc; }));
+      var genders = uniqSort(parsed.map(function (p) { return p.gen; }));                 // OP / F / M
+      var quotas = uniqSort(parsed.map(function (p) { return p.cls; })                    // FF / D / NCC / S …
+        .filter(function (c) { return c && c !== "X"; }));
       function optList(opts, fmtOpt) {
         return "<option value=''>All</option>" + opts.map(function (o) {
           return "<option value='" + esc(o) + "'>" + esc(fmtOpt ? fmtOpt(o) : o) + "</option>";
@@ -1147,10 +1190,13 @@
         "<label>Year <select id='f-year'>" + optList(years) + "</select></label>" +
         "<label>Round type <select id='f-uni'><option value=''>All</option><option value='jee'>JEE rounds</option><option value='qe'>Qualifying-Exam</option></select></label>" +
         "<label>Category <select id='f-cat'>" + optList(cats) + "</select></label>" +
+        "<label>Gender <select id='f-gen'>" + optList(genders, function (g) { return GENDER_LABEL[g] || g; }) + "</select></label>" +
+        "<label>Special quota <select id='f-quota'>" + optList(quotas, function (q) { return QUOTA_LABEL[q] || q; }) + "</select></label>" +
         "<label class='chk'><input type='checkbox' id='f-fw'> TFW only</label>";
       head.appendChild(bar);
       var fBranch = bar.querySelector("#f-branch"), fYear = bar.querySelector("#f-year"),
-        fUni = bar.querySelector("#f-uni"), fCat = bar.querySelector("#f-cat"), fFw = bar.querySelector("#f-fw");
+        fUni = bar.querySelector("#f-uni"), fCat = bar.querySelector("#f-cat"), fFw = bar.querySelector("#f-fw"),
+        fGen = bar.querySelector("#f-gen"), fQuota = bar.querySelector("#f-quota");
       // default to JEE rounds so the closing-rank sort never interleaves the two (incomparable)
       // rank scales; fall back to All if this college has no JEE rows.
       if (rows.some(function (r) { return r[ix.uni] === "jee"; })) fUni.value = "jee";
@@ -1170,11 +1216,15 @@
 
       function render() {
         var fb = fBranch.value, fy = fYear.value, fu = fUni.value, fc = fCat.value, ff = fFw.checked;
-        var list = rows.filter(function (r) {
+        var fg = fGen ? fGen.value : "", fq = fQuota ? fQuota.value : "";
+        var list = rows.filter(function (r, i) {
+          var p = parsed[i];
           if (fb && r[ix.b] !== fb) return false;
           if (fy && String(r[ix.yr]) !== fy) return false;
           if (fu && r[ix.uni] !== fu) return false;
-          if (fc && String(r[ix.pool]).split("/")[0] !== fc) return false;
+          if (fc && p.soc !== fc) return false;
+          if (fg && p.gen !== fg) return false;
+          if (fq && p.cls !== fq) return false;
           if (ff && !r[ix.fw]) return false;
           return true;
         });
