@@ -595,13 +595,16 @@
         var all = bp[bid] || [], type = typeSel ? typeSel.value : "", city = citySel ? citySel.value : "",
           avh = availSel ? availSel.value : "", sort = sortSel ? sortSel.value : "",
           M = METRIC[metricSel ? metricSel.value : ""] || METRIC[""], mi = M.idx;
-        // overall demand `rank` = position in the FULL list re-ordered by the chosen metric (lower = better);
-        // it stays meaningful no matter how the rows are sorted/filtered below.
-        var ordered = all.slice().sort(function (a, b) { return (a[mi] - b[mi]) || (a[0] < b[0] ? -1 : 1); });
+        // overall demand `rank` = position among ADMITTABLE (2026-27 intake) colleges, re-ordered by the
+        // chosen metric (lower = better). Historical/defunct colleges (no current intake) are dropped BEFORE
+        // ranking, so the unfiltered list is a contiguous 1..N (no phantom gaps); `demand #N` only appears
+        // once a real type/city/avail filter hides rows.
+        var ordered = all.slice().filter(function (pair) { var c = cols[pair[0]]; return c && !c.historical; })
+          .sort(function (a, b) { return (a[mi] - b[mi]) || (a[0] < b[0] ? -1 : 1); });
         var lst = [];
         ordered.forEach(function (pair, i) {
-          var c = cols[pair[0]] || {};
-          if (c && !c.historical && (!type || c.type === type) && (!city || c.city === city) &&
+          var c = cols[pair[0]];
+          if ((!type || c.type === type) && (!city || c.city === city) &&
               (!avh || ((avail[pair[0]] || {})[bid] || {}).h === avh)) lst.push({ pair: pair, rank: i + 1, val: pair[mi] });
         });
         if (sort === "demand-desc") lst.reverse();                                  // least sought-after first
