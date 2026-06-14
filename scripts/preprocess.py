@@ -739,6 +739,51 @@ def main():
         "columns": jee_cols, "years": sorted(QE_YEAR_TO_MERIT), "rows": qe_data,
         "percentile": percentile})
     sizes["demand_stats.json"] = write_json("demand_stats.json", demand)
+
+    # per-college cut-off history shards: faithful records (every branch / pool / year, JEE+QE
+    # rounds), lazy-loaded one file per college by the /college/ page. SL (internal-branch-change)
+    # and SP (special) rounds are excluded — they aren't admission cut-offs. JEE-rank rows and
+    # Qualifying-Exam-rank rows are tagged via `uni` and must never be compared across scales.
+    import shutil
+    HISTDIR = os.path.join(OUTDIR, "history")
+    if os.path.isdir(HISTDIR):
+        shutil.rmtree(HISTDIR, ignore_errors=True)
+    os.makedirs(HISTDIR, exist_ok=True)
+    HCOLS = ["b", "yr", "uni", "rd", "pool", "fw", "dom", "op", "cl", "al"]
+    hist = collections.defaultdict(list)
+    for r in cutoffs:
+        if r["_uni"] not in ("jee", "qe"):
+            continue
+        cl = to_int(r.get("closing_rank"))
+        if cl is None:
+            continue
+        cid = r["_cid"]
+        if cid not in colleges:                 # need name/city/type for the header
+            continue
+        pool = (str(r.get("allotted_category") or "").strip()) or (r.get("_social") or "")  # "" -> "—"; never fabricate UR
+        pool = pool.replace("F.W.", "FW")              # 2017-18 wrote F.W.; 2019+ wrote FW — one category
+        # TFW marker: the `fw` flag is only populated from 2019 on; in 2017-18 the fee-waiver
+        # pool is encoded solely in allotted_category (social == FW). Honour both signals.
+        is_fw = 1 if (r.get("fw") == "Y" or r.get("_social") == "FW") else 0
+        hist[cid].append([
+            r["_bid"], r["year"], r["_uni"], r["_rc"], pool,
+            is_fw, r.get("_dom") or "",
+            to_int(r.get("opening_rank")) or cl, cl, to_int(r.get("total_allotted")) or 0,
+        ])
+    hist_bytes = 0
+    for cid, hrows in hist.items():
+        hrows.sort(key=lambda x: (-x[1], x[0], x[4]))      # year desc, branch, pool
+        c = colleges[cid]
+        path = os.path.join(HISTDIR, cid + ".json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"id": cid, "name": c.get("name"), "city": c.get("city"),
+                       "type": c.get("type"), "university": c.get("university"),
+                       "years": sorted({row[1] for row in hrows}),
+                       "cols": HCOLS, "rows": hrows},
+                      f, ensure_ascii=False, separators=(",", ":"))
+        hist_bytes += os.path.getsize(path)
+    sizes["history/ (%d files)" % len(hist)] = hist_bytes
+
     sizes["config.json"] = write_json("config.json", {
         "data_version": DATA_VERSION,
         "flags": {"percentage_enabled": True},

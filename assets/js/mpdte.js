@@ -1080,7 +1080,10 @@
           var meta = [c.city, c.type, c.university, totalSeats + " seats"]
             .filter(function (x) { return x != null && x !== ""; })
             .map(function (x) { return esc(String(x)); }).join(" &middot; ");   // join only non-empty (no leading separator for null city)
-          card.innerHTML = "<h3>" + esc(c.name) + "</h3><p class='muted'>" + meta + "</p><div class='chips'>" + branchChips + "</div>";
+          var href = BASE + "/college/?id=" + encodeURIComponent(c.id);
+          card.innerHTML = "<h3><a href='" + href + "'>" + esc(c.name) + "</a></h3>" +
+            "<p class='muted'>" + meta + "</p><div class='chips'>" + branchChips + "</div>" +
+            "<p class='card-cta'><a href='" + href + "'>View cut-off history 2017&ndash;2025 &rarr;</a></p>";
           results.appendChild(card);
         });
       }
@@ -1093,6 +1096,122 @@
   function initHome() {
     var dv = document.getElementById("data-version");
     load("config").then(function (c) { if (dv) dv.textContent = "data " + c.data_version; }).catch(function () {});
+  }
+
+  /* ---------- page: single-college cut-off history ---------- */
+  var ROUND_LABEL = { RF: "First Round", FR: "First Round", FU: "First-Round Upgrade",
+    SR: "Second Round", QR: "Qualifying-Exam Round", TR: "Qualifying-Exam (TFW)" };
+  // counselling sequence, so sorting the Round column is chronological, not alphabetical
+  var ROUND_ORDER = { RF: 1, FR: 1, FU: 2, SR: 3, QR: 4, TR: 5 };
+  function uniqSort(arr) {
+    return Array.from(new Set(arr)).sort(function (a, b) { return String(a).localeCompare(String(b)); });
+  }
+  function initCollege() {
+    var head = document.getElementById("college-head");
+    var results = document.getElementById("results");
+    var id = qsParams().id;
+    if (!id || !/^[A-Za-z0-9]{1,8}$/.test(id)) {        // ids are short alphanumerics (474, 003, h20); reject anything else
+      head.innerHTML = "<p class='empty'>No college selected. <a href='" + BASE +
+        "/college-explorer/'>Browse colleges</a>.</p>";
+      return;
+    }
+    Promise.all([load("branches"), load("history/" + id)]).then(function (a) {
+      var branchLabel = {};
+      a[0].branches.forEach(function (b) { branchLabel[b.id] = b.label; });
+      var H = a[1], rows = H.rows, ix = {};
+      H.cols.forEach(function (c, i) { ix[c] = i; });
+
+      document.title = H.name + " · cut-off history";
+      var meta = [H.city, H.type, H.university].filter(Boolean).map(esc).join(" &middot; ");
+      head.innerHTML =
+        "<p class='crumb'><a href='" + BASE + "/college-explorer/'>&larr; All colleges</a></p>" +
+        "<h1 class='page-title'>" + esc(H.name) + "</h1>" +
+        "<p class='page-subtitle'>" + meta + "</p>" +
+        "<p class='muted'>Official DTE opening &amp; closing ranks, " + H.years[0] + "&ndash;" +
+        H.years[H.years.length - 1] + ". <strong>JEE</strong> rounds use the JEE-Main rank; " +
+        "<strong>Qualifying-Exam</strong> rounds use the 12th-% merit rank &mdash; different scales, " +
+        "never compare a rank across the two.</p>";
+
+      var branches = uniqSort(rows.map(function (r) { return r[ix.b]; }));
+      var years = H.years.slice().sort(function (x, y) { return y - x; });
+      var cats = uniqSort(rows.map(function (r) { return String(r[ix.pool]).split("/")[0]; }));
+      function optList(opts, fmtOpt) {
+        return "<option value=''>All</option>" + opts.map(function (o) {
+          return "<option value='" + esc(o) + "'>" + esc(fmtOpt ? fmtOpt(o) : o) + "</option>";
+        }).join("");
+      }
+      var bar = el("div", "hist-filters");
+      bar.innerHTML =
+        "<label>Branch <select id='f-branch'>" + optList(branches, function (b) { return branchLabel[b] || b; }) + "</select></label>" +
+        "<label>Year <select id='f-year'>" + optList(years) + "</select></label>" +
+        "<label>Round type <select id='f-uni'><option value=''>All</option><option value='jee'>JEE rounds</option><option value='qe'>Qualifying-Exam</option></select></label>" +
+        "<label>Category <select id='f-cat'>" + optList(cats) + "</select></label>" +
+        "<label class='chk'><input type='checkbox' id='f-fw'> TFW only</label>";
+      head.appendChild(bar);
+      var fBranch = bar.querySelector("#f-branch"), fYear = bar.querySelector("#f-year"),
+        fUni = bar.querySelector("#f-uni"), fCat = bar.querySelector("#f-cat"), fFw = bar.querySelector("#f-fw");
+      // default to JEE rounds so the closing-rank sort never interleaves the two (incomparable)
+      // rank scales; fall back to All if this college has no JEE rows.
+      if (rows.some(function (r) { return r[ix.uni] === "jee"; })) fUni.value = "jee";
+
+      var COLDEF = [
+        { k: "yr", h: "Year", cls: "num" },
+        { k: "b", h: "Branch", fmt: function (v) { return esc(branchLabel[v] || v); } },
+        { k: "pool", h: "Pool", fmt: function (v) { return v ? esc(v) : "—"; } },
+        { k: "dom", h: "Domicile", fmt: function (v) { return esc(v || "—"); } },
+        { k: "fw", h: "TFW", cls: "num", fmt: function (v) { return v ? "Yes" : ""; } },
+        { k: "op", h: "Opening", cls: "num", fmt: fmt },
+        { k: "cl", h: "Closing", cls: "num", fmt: fmt },
+        { k: "al", h: "Seats", cls: "num", fmt: fmt },
+        { k: "rd", h: "Round", fmt: function (v) { return esc(ROUND_LABEL[v] || v); } },
+      ];
+      var sortCol = "cl", sortDir = 1;
+
+      function render() {
+        var fb = fBranch.value, fy = fYear.value, fu = fUni.value, fc = fCat.value, ff = fFw.checked;
+        var list = rows.filter(function (r) {
+          if (fb && r[ix.b] !== fb) return false;
+          if (fy && String(r[ix.yr]) !== fy) return false;
+          if (fu && r[ix.uni] !== fu) return false;
+          if (fc && String(r[ix.pool]).split("/")[0] !== fc) return false;
+          if (ff && !r[ix.fw]) return false;
+          return true;
+        });
+        var si = ix[sortCol];
+        list.sort(function (x, y) {
+          var a = x[si], b = y[si];
+          if (sortCol === "rd") return sortDir * ((ROUND_ORDER[a] || 99) - (ROUND_ORDER[b] || 99));
+          if (typeof a === "string" || typeof b === "string") return sortDir * String(a).localeCompare(String(b));
+          return sortDir * ((a == null ? Infinity : a) - (b == null ? Infinity : b));
+        });
+        var thead = "<thead><tr>" + COLDEF.map(function (c) {
+          var arrow = c.k === sortCol ? (sortDir > 0 ? " &#9650;" : " &#9660;") : "";
+          return "<th class='" + (c.cls || "") + " sortable' data-k='" + c.k + "'>" + c.h + arrow + "</th>";
+        }).join("") + "</tr></thead>";
+        var body = "<tbody>" + list.map(function (r) {
+          return "<tr>" + COLDEF.map(function (c) {
+            var v = r[ix[c.k]];
+            return "<td class='" + (c.cls || "") + "'>" + (c.fmt ? c.fmt(v, r) : (v == null ? "—" : v)) + "</td>";
+          }).join("") + "</tr>";
+        }).join("") + "</tbody>";
+        results.innerHTML = "<p class='result-summary'><strong>" + list.length + "</strong> record" +
+          (list.length === 1 ? "" : "s") + " <span class='muted'>(click a column to sort)</span></p>" +
+          "<div class='table-wrap'><table class='results hist-table'>" + thead + body + "</table></div>";
+        Array.prototype.forEach.call(results.querySelectorAll("th.sortable"), function (th) {
+          th.addEventListener("click", function () {
+            var k = th.getAttribute("data-k");
+            if (k === sortCol) sortDir = -sortDir; else { sortCol = k; sortDir = 1; }
+            render();
+          });
+        });
+      }
+      bar.addEventListener("change", render);
+      render();
+    }).catch(function () {
+      head.innerHTML = "<p class='crumb'><a href='" + BASE + "/college-explorer/'>&larr; All colleges</a></p>";
+      results.innerHTML = "<p class='empty'>No historical cut-off records found for this college " +
+        "(id " + esc(id) + ").</p>";
+    });
   }
 
   /* ---------- page: model accuracy (backtest) ---------- */
@@ -1181,6 +1300,7 @@
     if (page === "jee") initSimulator();
     else if (page === "qe") initPredictor("qe");
     else if (page === "explorer") initExplorer();
+    else if (page === "college") initCollege();
     else if (page === "accuracy") initAccuracy();
     else if (page === "branchrank") initBranchRankings();
     else if (page === "home") initHome();
