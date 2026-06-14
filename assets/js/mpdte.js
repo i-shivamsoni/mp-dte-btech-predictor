@@ -479,7 +479,7 @@
   function initBranchRankings() {
     var sel = document.getElementById("br-branch"), typeSel = document.getElementById("br-type"),
       citySel = document.getElementById("br-city"), availSel = document.getElementById("br-avail"),
-      out = document.getElementById("br-list");
+      sortSel = document.getElementById("br-sort"), out = document.getElementById("br-list");
     if (!sel || !out) return;
     loadAll(["colleges", "branches", "demand_stats"]).then(function (a) {
       var cols = {}; (a[0].colleges || []).forEach(function (c) { cols[c.id] = c; });
@@ -521,12 +521,19 @@
       var CAP = 50;
       function render(bid, expanded) {
         var all = bp[bid] || [], type = typeSel ? typeSel.value : "", city = citySel ? citySel.value : "",
-          avh = availSel ? availSel.value : "";
-        var lst = all.filter(function (pair) {
+          avh = availSel ? availSel.value : "", sort = sortSel ? sortSel.value : "";
+        // `rank` = the college's within-branch DEMAND rank (stable position in the demand list),
+        // so it stays meaningful no matter how the rows are sorted below.
+        var lst = [];
+        all.forEach(function (pair, i) {
           var c = cols[pair[0]] || {};
-          return c && !c.historical && (!type || c.type === type) && (!city || c.city === city) &&
-            (!avh || ((avail[pair[0]] || {})[bid] || {}).h === avh);   // seats-last-to filter
-        }).map(function (pair, i) { return { pair: pair, rank: i + 1 }; });
+          if (c && !c.historical && (!type || c.type === type) && (!city || c.city === city) &&
+              (!avh || ((avail[pair[0]] || {})[bid] || {}).h === avh)) lst.push({ pair: pair, rank: i + 1 });
+        });
+        if (sort === "demand-desc") lst.reverse();                                  // least sought-after first
+        else if (sort === "name") lst.sort(function (a, b) {
+          return (cols[a.pair[0]].name || "").localeCompare(cols[b.pair[0]].name || "");
+        });
         var matchTotal = lst.length, capped = matchTotal > CAP && !expanded;
         var rows = (capped ? lst.slice(0, CAP) : lst).map(function (item) { return rowHtml(item, bid); }).join("");
         var criteria = [];
@@ -538,7 +545,7 @@
           "(most sought-after first). &ldquo;Typical demand&rdquo; is the open/general (UR) Round-1 seat&rsquo;s " +
           "<strong>admitted-rank midpoint</strong> (opening&ndash;closing) over 2023&ndash;25; <strong>lower = more in demand</strong>. " +
           "Same order the simulator fills your choice list in." +
-          filterNote + (capped ? " <strong>Showing the top " + CAP + ".</strong>" : "") + "</p>" +
+          filterNote + (capped ? " <strong>Showing " + CAP + " of " + matchTotal + ".</strong>" : "") + "</p>" +
           (matchTotal ? "<div class='table-wrap'><table class='results'><thead><tr><th class='num'>#</th><th>College</th>" +
           "<th>Type</th><th class='num'>Typical demand<br><span class='sub'>admit-rank mid</span></th>" +
           "<th>Seats last to<br><span class='sub'>" + AVAIL_YR + "</span></th></tr></thead><tbody>" +
@@ -548,20 +555,17 @@
         var mb = out.querySelector(".br-more");
         if (mb) mb.addEventListener("click", function () { render(bid, !expanded); });
       }
-      function syncUrl() { setParams({ b: sel.value, type: typeSel && typeSel.value, city: citySel && citySel.value, avail: availSel && availSel.value }); }
+      function syncUrl() { setParams({ b: sel.value, type: typeSel && typeSel.value, city: citySel && citySel.value, avail: availSel && availSel.value, sort: sortSel && sortSel.value }); }
       var params = qsParams(), want = params.b;
       if (want && bids.indexOf(want) > -1) sel.value = want; else if (bids.indexOf("cse") > -1) sel.value = "cse";
       if (typeSel && params.type && types.indexOf(params.type) > -1) typeSel.value = params.type;
       if (citySel && params.city && cities.indexOf(params.city) > -1) citySel.value = params.city;
       if (availSel && params.avail && AVAIL_LABEL[params.avail]) availSel.value = params.avail;
+      if (sortSel && params.sort) sortSel.value = params.sort;
       render(sel.value);
-      sel.addEventListener("change", function () {
-        render(sel.value);
-        syncUrl();
+      [sel, typeSel, citySel, availSel, sortSel].forEach(function (s) {
+        if (s) s.addEventListener("change", function () { render(sel.value); syncUrl(); });
       });
-      if (typeSel) typeSel.addEventListener("change", function () { render(sel.value); syncUrl(); });
-      if (citySel) citySel.addEventListener("change", function () { render(sel.value); syncUrl(); });
-      if (availSel) availSel.addEventListener("change", function () { render(sel.value); syncUrl(); });
     }).catch(function (e) { showError(out, e); });
   }
 
