@@ -656,6 +656,36 @@ def main():
         [{"b": bid, "label": CANON.get(bid, bid), "into": d["into"]} for bid, d in mv.items()],
         key=lambda x: -x["into"])[:20]
 
+    # ---- seat-availability HORIZON per (college,branch): the LAST round each still allots seats ----
+    # Top colleges fill in Round 1/Upgrade (nothing left for Round 2 or the 12th-% round); low-demand
+    # colleges keep allotting into Round 2 and the Qualifying-Exam (percentage) round. Computed on 2024
+    # (the only year with both the JEE rounds AND the QE round). `al`/total_allotted counts allotment
+    # EVENTS (over-counts true vacancy ~5% via category/freeze-float pools), so the horizon is a RELATIVE
+    # "when do seats run out" signal, not an exact seat count. Rule: bucket allotments into
+    # [R1, Upgrade, R2, QE]; thr = max(3, 10% of the pair's total); horizon = the LAST bucket >= thr (QE
+    # overrides if it clears thr; fallback = the single largest bucket).
+    AVAIL_YEAR = 2024
+    ROUND_BUCKET = {"FR": 0, "RF": 0, "FU": 1, "SR": 2, "QR": 3, "TR": 3}     # R1 / Upgrade / R2 / QE
+    HORIZON_CODE = ["r1", "up", "r2", "qe"]
+    avail_counts = collections.defaultdict(lambda: [0, 0, 0, 0])
+    for r in cutoffs:
+        if r["year"] != AVAIL_YEAR or not r["_cid"]:
+            continue
+        b = ROUND_BUCKET.get(r["_rc"])
+        if b is None:
+            continue
+        avail_counts[(r["_cid"], r["_bid"])][b] += to_int(r.get("total_allotted")) or 0
+    availability = {}
+    for (cid, bid), n in avail_counts.items():
+        total = sum(n)
+        if total <= 0:
+            continue
+        thr = max(3, 0.10 * total)
+        h = next((i for i in (3, 2, 1, 0) if n[i] >= thr), None)             # last (latest) bucket clearing thr
+        if h is None:
+            h = n.index(max(n))                                              # fallback: largest bucket
+        availability.setdefault(cid, {})[bid] = {"h": HORIZON_CODE[h], "n": n}
+
     demand = {
         "latest_year": latest, "year_min": 2017, "year_max": 2025,
         "branches": demand_branches, "colleges": demand_colleges[:60],
@@ -663,6 +693,7 @@ def main():
         "by_city": [{"city": c, "seats": n} for c, n in by_city.most_common()],
         "branch_movement": movement,
         "branch_priority": branch_priority,      # branchId -> [[collegeId, demandClosing], ...] best-first
+        "availability": availability,            # cid -> bid -> {h: horizon r1/up/r2/qe, n: [R1,Up,R2,QE]}
     }
 
     # ---- 6. write assets ----

@@ -251,3 +251,14 @@ body[data-page="accuracy"] main.container { max-width: 940px; }
 /* TFW checkbox disabled (other-state domicile — TFW is MP-domicile only) */
 label.f-check.disabled { opacity: .5; cursor: not-allowed; }
 label.f-check.disabled input { cursor: not-allowed; }
+
+/* Seat-availability horizon badge (when a college's seats typically run out) */
+.avail-badge {
+  display: inline-block; font-size: .72rem; font-weight: 600; line-height: 1;
+  padding: 3px 7px; border-radius: 999px; white-space: nowrap; vertical-align: middle;
+  border: 1px solid transparent;
+}
+.avail-badge.badge-r1 { background:#fde2e1; color:#9b1c1c; border-color:#f3b6b3; }  /* gone earliest */
+.avail-badge.badge-up { background:#fdecd2; color:#8a4b00; border-color:#eccb95; }
+.avail-badge.badge-r2 { background:#e7eefb; color:#1f4fbf; border-color:#c2d4f4; }
+.avail-badge.badge-qe { background:#dcf3e3; color:#1d6b3a; border-color:#aeddbe; }  /* lasts to the % round */

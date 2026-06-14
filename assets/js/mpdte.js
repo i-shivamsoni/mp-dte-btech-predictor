@@ -165,6 +165,7 @@
         viaUpgrade: asg.viaUpgrade, seats: (ctx.intake[p.cid] || {})[p.bid] || null,
         bestClosing: best != null ? best : Infinity, tfw: p.cat === "FW",
         cls: p.cls, quota: (p.cls && p.cls !== "X") ? p.cls : "",
+        avail: (ctx.avail && ctx.avail[p.cid]) ? (ctx.avail[p.cid][p.bid] || null) : null,   // seat-availability horizon
         prefRank: (ctx.pref && ctx.pref[p.cid + "|" + p.bid]) || 1e9,   // historical desirability (1 = most sought-after)
         pool: (p.cls && p.cls !== "X") ? "special"
             : (p.cat === "FW") ? "tfw"
@@ -279,6 +280,21 @@
     if (r.quota) return ((r.social && r.social !== "UR") ? r.social + " " : "") + (QUOTA_LABEL[r.quota] || r.quota);
     return r.tfw ? "TFW" : (r.pool === "female" ? r.social + " Female" : (r.pool === "reserved" ? r.social : "General"));
   }
+  // Seat-availability HORIZON — the last round a college+branch typically still allots seats.
+  // Top colleges run dry in Round 1/Upgrade; low-demand ones last into Round 2 / the 12th-% round.
+  var AVAIL_LABEL = {
+    r1: { t: "Round 1 only", d: "seats fill in Round 1 — you must grab it then" },
+    up: { t: "gone after Upgrade", d: "seats fill by the First-Round Upgrade" },
+    r2: { t: "lasts to Round 2", d: "seats usually remain into Round 2" },
+    qe: { t: "open in 12th-% round", d: "seats usually remain even in the Qualifying-Exam (percentage) round" },
+  };
+  function horizonBadge(av) {
+    if (!av || !av.h || !AVAIL_LABEL[av.h]) return "";
+    var L = AVAIL_LABEL[av.h], n = av.n || [0, 0, 0, 0];
+    var tip = "Seats " + L.d + ". 2024 allotments — Round 1: " + n[0] + ", Upgrade: " + n[1] +
+      ", Round 2: " + n[2] + ", 12th-% round: " + n[3] + " (shows WHEN seats run out — allotment counts, not exact 2026 vacancies).";
+    return " <span class='avail-badge badge-" + av.h + "' title='" + esc(tip) + "'>" + esc(L.t) + "</span>";
+  }
   var CHOICE_CAP = 50;
 
   // Three choice-list strategies. reachable is pre-sorted toughest-first; oor = out-of-reach pools.
@@ -321,6 +337,11 @@
     container.appendChild(el("p", "result-summary",
       "<strong>" + reachable.length + "</strong> seat-pool option" + (reachable.length === 1 ? "" : "s") +
       " you qualify for at rank " + fmt(opts.rank) + (unreachable.length ? " &middot; " + unreachable.length + " out of reach" : "")));
+    container.appendChild(el("p", "muted avail-legend",
+      "Each college shows when its seats typically run out: " +
+      "<span class='avail-badge badge-r1'>Round 1 only</span> <span class='avail-badge badge-up'>gone after Upgrade</span> " +
+      "<span class='avail-badge badge-r2'>lasts to Round 2</span> <span class='avail-badge badge-qe'>open in 12th-% round</span> " +
+      "&mdash; so a tougher college may need an earlier round. (From 2024 allotments.)"));
 
     if (reachable.length || unreachable.length) {
       var sug = el("div", "choice-suggest");
@@ -433,7 +454,7 @@
       var tr = el("tr", "row-" + r.band.toLowerCase());
       tr.innerHTML =
         "<td class='num pref-no'>" + (r.choiceNo == null ? "&mdash;" : r.choiceNo) + "</td>" +
-        "<td><span class='co-name'>" + esc(r.college) + hist + "</span><span class='sub'>" + esc(r.branch) + "</span></td>" +
+        "<td><span class='co-name'>" + esc(r.college) + hist + "</span><span class='sub'>" + esc(r.branch) + horizonBadge(r.avail) + "</span></td>" +
         "<td>" + poolTag(r) + domTag(r) + "</td>" +
         "<td>" + esc(r.city) + "<span class='sub'>" + esc(r.type) + "</span></td>" +
         "<td class='num'>" + fmt(r.closing == null ? r.bestClosing : r.closing) + " <span class='sub'>" + closeSub + "</span></td>" +
@@ -462,6 +483,7 @@
       var cols = {}; (a[0].colleges || []).forEach(function (c) { cols[c.id] = c; });
       var blab = {}; (a[1].branches || []).forEach(function (b) { blab[b.id] = b.label; });
       var bp = (a[2] && a[2].branch_priority) || {};
+      var avail = (a[2] && a[2].availability) || {};
       var types = (a[0].types || []).slice().sort();
       var cityMap = {};
       (a[0].colleges || []).forEach(function (c) { if (c.city) cityMap[c.city] = 1; });
@@ -482,7 +504,7 @@
           return "<option value='" + esc(c) + "'>" + esc(c) + "</option>";
         }).join("");
       }
-      function rowHtml(item) {
+      function rowHtml(item, bid) {
         var pair = item.pair;
         var c = cols[pair[0]] || {}, t = c.type || "—";
         var govt = /government|university/i.test(t);
@@ -490,7 +512,8 @@
           "<td class='num'>" + item.rank + "</td>" +
           "<td><span class='co-name'>" + esc(c.name || pair[0]) + "</span><span class='sub'>" + esc(c.city || "") + "</span></td>" +
           "<td><span class='pool " + (govt ? "" : "muted") + "'>" + esc(t) + "</span></td>" +
-          "<td class='num'>~" + fmt(pair[1]) + "</td></tr>";
+          "<td class='num'>~" + fmt(pair[1]) + "</td>" +
+          "<td>" + (horizonBadge((avail[pair[0]] || {})[bid]) || "<span class='muted sub'>&mdash;</span>") + "</td></tr>";
       }
       var CAP = 50;
       function render(bid, expanded) {
@@ -500,7 +523,7 @@
           return c && !c.historical && (!type || c.type === type) && (!city || c.city === city);  // skip defunct colleges
         }).map(function (pair, i) { return { pair: pair, rank: i + 1 }; });
         var matchTotal = lst.length, capped = matchTotal > CAP && !expanded;
-        var rows = (capped ? lst.slice(0, CAP) : lst).map(rowHtml).join("");
+        var rows = (capped ? lst.slice(0, CAP) : lst).map(function (item) { return rowHtml(item, bid); }).join("");
         var criteria = [];
         if (type) criteria.push("<strong>" + esc(type) + "</strong>");
         if (city) criteria.push("<strong>" + esc(city) + "</strong>");
@@ -511,7 +534,8 @@
           "&mdash; the best-ranked student who chose it; <strong>lower = more in demand</strong>. Same order the simulator fills your choice list in." +
           filterNote + (capped ? " <strong>Showing the top " + CAP + ".</strong>" : "") + "</p>" +
           (matchTotal ? "<div class='table-wrap'><table class='results'><thead><tr><th class='num'>#</th><th>College</th>" +
-          "<th>Type</th><th class='num'>Typical demand<br><span class='sub'>open rank</span></th></tr></thead><tbody>" +
+          "<th>Type</th><th class='num'>Typical demand<br><span class='sub'>open rank</span></th>" +
+          "<th>Seats last to<br><span class='sub'>2024</span></th></tr></thead><tbody>" +
           rows + "</tbody></table></div>" : "<p class='empty'>No colleges match this branch and filters.</p>") +
           (matchTotal > CAP ? "<div class='br-more-wrap'><button type='button' class='br-more'>" +
             (expanded ? "Show top " + CAP + " only &uarr;" : "Show all " + matchTotal + " colleges &darr;") + "</button></div>" : "");
@@ -540,6 +564,7 @@
     loadAll(["colleges", "branches", "cities", "intake", "config", "predictor_jee", "demand_stats"]).then(function (a) {
       var ctx = buildContext(a[0], a[1], a[2], a[3], a[4]);
       ctx.pref = prefFromBranchPriority(a[6] && a[6].branch_priority);   // (college|branch) -> within-branch demand rank
+      ctx.avail = (a[6] && a[6].availability) || {};                     // (college -> branch -> availability horizon)
       var pred = a[5]; pred._roundMap = JEE_ROUND_MAP;
       var ms, curStrat = qsParams().strat || "balanced";
       function setStrat(s) { curStrat = s; var u = new URLSearchParams(location.search); u.set("strat", s); history.replaceState(null, "", location.pathname + "?" + u); }
