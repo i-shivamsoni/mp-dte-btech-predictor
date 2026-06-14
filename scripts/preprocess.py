@@ -675,7 +675,8 @@ def main():
     # [R1, Upgrade, R2, QE]; thr = max(3, 10% of the pair's total); horizon = the LAST bucket >= thr (QE
     # overrides if it clears thr; fallback = the single largest bucket).
     # Latest year that has BOTH the JEE rounds AND the QE/percentage round IN THE CUT-OFFS. The QE-ROUND
-    # cut-offs (TR/QR, e.g. BE_TR_2025.pdf) exist for more years than the QE MERIT LISTS (%->rank, which
+    # cut-offs (TR/QR, e.g. 2025__cutoff__qualifying-exam-round.pdf) exist for more years than the QE MERIT
+    # LISTS (%->rank, which
     # the percentage *predictor* needs and only has through 2024) — the horizon only needs the round
     # cut-offs, so it can and should use 2025.
     _yrs_jee = {r["year"] for r in cutoffs if r.get("_uni") == "jee"}

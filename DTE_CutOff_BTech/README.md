@@ -8,14 +8,14 @@ Course: **BACHELOR OF TECHNOLOGY**. Extracted 2026-06-10.
 <year>/<file>.pdf     original cut-off PDF
 <year>/<file>.json    parsed data for that PDF
 <year>/_index.txt     filename → round description
-manifest.json         index of all 53 documents (year, round, columns, row_count)
-all_btech_cutoffs.json all 65,600 rows flattened, each tagged with year + round
+cutoffs__manifest.json       index of all 53 documents (year, round, columns, row_count)
+2017-2025__all-cutoffs.json  all 65,600 rows flattened, each tagged with year + round
 ```
 
 ## Per-PDF JSON shape
 ```json
 {
-  "source_pdf": "2025/BE_RF_2025.pdf",
+  "source_pdf": "2025__cutoff__first-round.pdf",
   "year": 2025,
   "round_title": "OPENING AND CLOSING FIRST ROUND 2025",
   "document_title_lines": ["DIRECTORATE ...", "BACHELOR OF TECHNOLOGY", ...],

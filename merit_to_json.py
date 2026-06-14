@@ -112,7 +112,7 @@ def main():
     grand = 0
     for key, L in by_list.items():
         L["row_count"] = len(L["rows"]); grand += len(L["rows"])
-        out = f"{outdir}/BTech_MeritList_QE_{key}.json"
+        out = f"{outdir}/{key}__merit-list__qualifying-exam.json"   # name preprocess.py reads
         json.dump(L, open(out, "w", encoding="utf-8"), ensure_ascii=False)
         print(f"  -> {out}  ({L['row_count']:,} candidates, "
               f"{os.path.getsize(out)/1e6:.1f} MB)")
