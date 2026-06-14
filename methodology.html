@@ -10,42 +10,118 @@ permalink: /methodology/
 <p>
   This is a <strong>deterministic cut-off lookup</strong>, the same approach reputable JEE/JoSAA
   predictors use &mdash; not a machine-learning model. Every counselling round publishes a
-  <strong>closing rank</strong>: the last rank that actually got a seat in each
-  college&times;branch&times;category pool. We simply compare your rank to those published closing
-  ranks. If your rank is at or below a seat&rsquo;s closing rank, that seat was historically reachable.
+  <strong>closing rank</strong>: the last rank that actually got a seat in each exact
+  college&times;branch&times;category pool. We compare your rank to those published closing ranks &mdash;
+  but instead of one flat lookup, the rank predictor <strong>simulates the counselling round by round</strong>,
+  in the order the real allotment happens.
 </p>
-<p>Each result is labelled by how much cushion you have:</p>
+
+<h3>The rank route &mdash; a round-by-round simulation</h3>
+<p>
+  The JEE-rank counselling runs in three rounds, and cut-offs are <em>not</em> the same across them, so we
+  read each round&rsquo;s closing rank separately:
+</p>
+<ul>
+  <li><strong>Round 1</strong> &mdash; the first fresh-entry allotment (tightest cut-offs).</li>
+  <li><strong>First-Round Upgrade</strong> &mdash; seats freed when Round-1 candidates upgrade.</li>
+  <li><strong>Round 2</strong> &mdash; the second fresh + upgrade allotment (cut-offs usually loosen).</li>
+</ul>
+<p>
+  For each pool, a round&rsquo;s closing rank is the <strong>median of that round&rsquo;s sub-seat
+  closings</strong> &mdash; the rank the pool <em>typically</em> closes at, robust to a single freak
+  one-seat outlier. We then find the <strong>earliest round whose closing rank still covers you</strong>,
+  and that&rsquo;s flagged as the round you&rsquo;d most likely secure the seat in (<em>Round 1</em>,
+  <em>First-Round Upgrade</em> or <em>Round 2</em>).
+</p>
+<p>Each reachable pool is labelled by how much cushion you have in that round:</p>
 <ul>
   <li><span class="tag tag-safe">Safe</span> your rank is comfortably below the closing rank (&le; 80%).</li>
   <li><span class="tag tag-moderate">Moderate</span> your rank is near the closing rank.</li>
-  <li><span class="tag tag-reach">Reach</span> your rank is slightly above (within ~15%).</li>
-  <li><span class="tag tag-unreachable">Unreachable</span> well above last year&rsquo;s closing rank.</li>
+  <li><span class="tag tag-reach">Reach</span> your rank is slightly above (within ~15%), or a volatile Round-2 seat.</li>
 </ul>
 <p>
-  For each college&times;branch we use the <strong>most recent year</strong> available and the most
-  lenient (last) round in that year as the basis. We never mix the two rank systems below.
+  That cushion is then <strong>nudged one step safer or riskier by how consistently the pool closed above
+  your rank over the last three years</strong> &mdash; a pool that cleared your rank every prior year is
+  promoted (e.g. Moderate&rarr;Safe), one that never did is demoted &mdash; so the band reflects stability,
+  not just this year&rsquo;s number.
+</p>
+<p>
+  A pool that has <em>any</em> securing round is never marked unreachable &mdash; it&rsquo;s at worst a
+  <span class="tag tag-reach">Reach</span>. Pools whose every round closes ahead of your rank are pulled
+  out into a separate <strong>&ldquo;out of reach&rdquo;</strong> section so they don&rsquo;t crowd your
+  real options.
 </p>
 
-<h2>Two separate rank universes</h2>
+<h3>Your choices, in counselling order (demand first)</h3>
+<p>
+  Counselling awards you the <strong>best seat you qualify for, taken from the top of your filled-in
+  preference list</strong> &mdash; so the order you list choices in is what actually decides your seat.
+  We therefore sort results by <strong>historical demand (most sought-after first)</strong>, not by how
+  easy they are to get. That mirrors how you should fill the form: put the seats you want most at the top,
+  reachable or not, and let the safe anchors sit underneath.
+</p>
+<p>Pick a ready-made breadth with the three strategy buttons:</p>
+<ul>
+  <li><strong>Safe</strong> &mdash; only seats you&rsquo;re very likely to get, demand-ordered.</li>
+  <li><strong>Balanced</strong> &mdash; a realistic spread: a few dream picks, the most sought-after seats you can realistically get, plus a couple of guaranteed anchors.</li>
+  <li><strong>Greedy</strong> &mdash; a long aspirational list (including stretch picks that may open up as cut-offs loosen across rounds), still ending in safe anchors so you&rsquo;re never left unallotted.</li>
+</ul>
+
+<h3>When seats run out &mdash; the availability horizon</h3>
+<p>
+  The most in-demand colleges fill up in Round 1; mid-demand ones linger into Upgrade or Round 2; only
+  the leftovers reach the 12th-% round. Each college is badged with <strong>when its seats typically run
+  out</strong> &mdash; <em>Round 1 only</em>, <em>gone after Upgrade</em>, <em>lasts to Round 2</em>, or
+  <em>open in 12th-% round</em> &mdash; based on the most recent year&rsquo;s allotment pattern. So a
+  tougher college may simply need you to grab it in an earlier round.
+</p>
+
+<h3>Exact category matching</h3>
+<p>
+  We match the <strong>exact <code>SOCIAL / CLASS / GENDER</code> code separately</strong> and never merge
+  pools &mdash; <code>UR/X/OP</code> is kept apart from <code>UR/D/OP</code>, <code>EWS</code>,
+  <code>FW</code> and the female-only <code>/F</code> pool, so each keeps its own closing rank. If you pick
+  a reserved category, a special horizontal quota (Divyang, Sainik, NCC, Freedom Fighter&hellip;), TFW, or
+  the female pool, you see those seats <em>and</em> the open/general pool as a fallback, each row labelled
+  with the pool it matched.
+</p>
+
+<h3>The 12th-% route</h3>
+<p>
+  The percentage predictor is a single lookup, not a round simulation. It first converts your percentage
+  into an estimated qualifying-exam <em>merit rank</em> using that year&rsquo;s published merit list, then
+  compares it to the Qualifying Exam Based Round closing ranks (bands
+  <span class="tag tag-safe">Safe</span> / <span class="tag tag-moderate">Moderate</span> /
+  <span class="tag tag-reach">Reach</span> / <span class="tag tag-unreachable">Unreachable</span>).
+  This round runs on the general + EWS + fee-waiver pools only.
+</p>
+
+<h2>Two separate rank universes &mdash; never mixed</h2>
 <table class="results">
   <thead><tr><th>Round</th><th>Track</th><th>Rank you compare</th></tr></thead>
   <tbody>
     <tr><td>First Round, First-Round Upgrade, Second Round</td><td>JEE Main</td><td>JEE Common Rank (up to ~1.5&nbsp;million)</td></tr>
-    <tr><td>Qualifying Exam Based Round</td><td>Class-XII %</td><td>12th-% merit rank (up to ~14,500)</td></tr>
+    <tr><td>Qualifying Exam Based Round</td><td>Class-XII %</td><td>12th-% merit rank (up to ~14,000)</td></tr>
   </tbody>
 </table>
 <p>
-  The 12th-% college predictor first converts your percentage into an estimated qualifying-exam
-  <em>merit rank</em> using that year&rsquo;s published merit list, then compares it to the
-  Qualifying Exam Based Round closing ranks. The &ldquo;Second Round&rdquo; is a JEE round &mdash;
-  it is <strong>not</strong> the percentage round.
+  The two tracks have completely different rank scales, so they are computed and shown separately. The
+  &ldquo;Second Round&rdquo; is a JEE round &mdash; it is <strong>not</strong> the percentage round; the
+  percentage admissions are their own parallel <em>Qualifying Exam Based Round</em>.
 </p>
 
 <h2>Data sources &amp; coverage</h2>
 <ul>
-  <li><strong>Cut-offs:</strong> 65,600 rows from official MP-DTE opening/closing-rank PDFs, 2017&ndash;2025.</li>
+  <li><strong>Cut-offs:</strong> 65,600 rows from official MP-DTE opening/closing-rank PDFs, 2017&ndash;2025.
+    The rank simulator is built on the <strong>three most recent years (2023&ndash;25)</strong> &mdash; recent
+    enough to reflect today&rsquo;s competition, with enough years to gauge how stable each cut-off is.</li>
   <li><strong>Seat matrix:</strong> the 2026&ndash;27 &ldquo;Tentative List of Institutes and Intake&rdquo; (669 college&times;branch rows, 49,391 seats).</li>
   <li><strong>Qualifying-exam merit lists:</strong> 2019, 2022-23, 2024-25 (the %&rarr;rank bridge). Other years are being sourced and will be added later.</li>
+  <li><strong>Demand ranking:</strong> a college&rsquo;s demand for a branch is the <strong>midpoint of its
+    admitted-rank range (opening&ndash;closing) on the open/general seat</strong>, taken from Round 1 and
+    median-averaged over 2023&ndash;25 (lower = more sought-after). This is what orders your choice list and
+    powers the <a href="{{ '/branch-rankings/' | relative_url }}">Branch ranks</a> page &mdash; computed
+    purely from the official cut-offs, with no reputation adjustment.</li>
 </ul>
 
 <h2>Category, gender &amp; domicile</h2>
@@ -56,7 +132,7 @@ permalink: /methodology/
 <ul>
   <li><strong>Category</strong> (UR, OBC, SC, ST, EWS). If you pick a reserved category you also see
     general (open-pool) seats, each row labelled with the pool it matched. Reservation appears in the
-    JEE rounds; the Qualifying Exam Based Round is general + EWS only.</li>
+    JEE rounds; the Qualifying Exam Based Round runs on general + EWS + fee-waiver pools only.</li>
   <li><strong>TFW (Tuition Fee Waiver)</strong> is <em>not</em> a category &mdash; it is a
     supernumerary, income-tested (family income ≤ ₹8 L) fee-waiver pool open to students of
     <em>any</em> category, with ~5% extra seats and its own (tougher) cut-off. Tick the TFW box and,
@@ -127,7 +203,7 @@ permalink: /methodology/
   <thead><tr><th>Field</th><th>Codes</th></tr></thead>
   <tbody>
     <tr><td><strong>SOCIAL</strong></td><td><code>UR</code> &middot; <code>SC</code> &middot; <code>ST</code> &middot; <code>OBC</code> &middot; <code>EWS</code> &middot; <code>FW</code> (fee-waiver)</td></tr>
-    <tr><td><strong>CLASS</strong> (horizontal)</td><td><code>X</code> none &middot; <code>S</code> Sainik &middot; <code>D</code> Divyang &middot; <code>NCC</code> &middot; <code>FF</code> Freedom Fighter &middot; <code>TS</code> special</td></tr>
+    <tr><td><strong>CLASS</strong> (horizontal)</td><td><code>X</code> none &middot; <code>S</code> Sainik &middot; <code>D</code> Divyang &middot; <code>NCC</code> &middot; <code>FF</code> Freedom Fighter &middot; <code>H</code> &middot; <code>TS</code> (special quotas as notified)</td></tr>
     <tr><td><strong>GENDER</strong></td><td><code>OP</code> open (any gender) &middot; <code>F</code> female-only pool</td></tr>
   </tbody>
 </table>
@@ -143,7 +219,9 @@ permalink: /methodology/
   <li>Cut-offs <strong>drift every year</strong>; a prediction is an estimate, not a guarantee.</li>
   <li><strong>Non-MP-domicile</strong> eligibility for these seats is not fully confirmed by this data &mdash; selecting &ldquo;Other state&rdquo; drops MP home-state-only seats, but always verify with DTE.</li>
   <li>Fee-waiver (TFW) seats are <strong>income-tested</strong>; the seat count shows availability, not your eligibility.</li>
-  <li>~5% of historical cut-off colleges are defunct and have no 2026-27 seat data; they show &ldquo;n/a&rdquo; seats.</li>
+  <li>Of the 207 colleges that appear in the historical cut-offs, only <strong>111 still have 2026-27 intake</strong>;
+    the other <strong>96 (~46%)</strong> are cut-off-only / defunct. The rank simulator excludes them entirely; on the
+    12th-% route they appear tagged &ldquo;historical&rdquo; with &ldquo;n/a&rdquo; seats.</li>
   <li>Internal Branch Change data is excluded from prediction (it&rsquo;s a post-admission swap) and used only for the demand dashboard.</li>
 </ul>
 

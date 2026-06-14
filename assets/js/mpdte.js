@@ -960,6 +960,12 @@
     var box = document.getElementById("accuracy");
     if (!box) return;
     load("backtest").then(function (b) {
+      // keep the prose headline figures in sync with the live backtest (so they can't go stale)
+      var accFill = { "jee-within20": b.jee.overall.pct_within_20 + "%", "qe-within20": b.qe.overall.pct_within_20 + "%",
+        "cov-pool": "~" + Math.round(b.jee.coverage_pool_pct) + "%", "cov-seat": "~" + Math.round(b.jee.coverage_seat_pct) + "%" };
+      Object.keys(accFill).forEach(function (k) {
+        Array.prototype.forEach.call(document.querySelectorAll("[data-acc='" + k + "']"), function (e) { e.textContent = accFill[k]; });
+      });
       function pct(x) { return x == null ? "—" : x + "%"; }
       // a numeric cell with a proportional tinted fill bar behind the percentage
       function pc(x) {
