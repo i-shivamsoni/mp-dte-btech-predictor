@@ -816,6 +816,14 @@
     type.appendChild(new Option("Any institute type", ""));
     (ctx.types || []).forEach(function (t) { type.appendChild(new Option(t, t)); });
     group("Institute type", type);
+    // Domicile (only when opts.domicile) — changes which seats are open to the student (rulebook).
+    var dom = null;
+    if (opts.domicile) {
+      dom = el("select"); dom.id = "f-dom";
+      dom.appendChild(new Option("MP (domicile)", "mp"));
+      dom.appendChild(new Option("Other state (non-domicile)", "other"));
+      group("Domicile", dom);
+    }
     // Tuition Fee Waiver (label differs per page: predictor = "include", explorer = "only")
     var fwWrap = el("label", "f-check");
     var fw = el("input"); fw.type = "checkbox"; fw.id = "f-fw";
@@ -823,8 +831,12 @@
     fwWrap.appendChild(document.createTextNode(" " + (opts.fwLabel || "Tuition Fee Waiver (TFW) seats")));
     var fwGroup = el("div", "f-group f-group-check"); fwGroup.appendChild(fwWrap);
     container.appendChild(fwGroup);
-    return { city: city, branch: branch, type: type, fw: fw, search: search };
+    return { city: city, branch: branch, type: type, fw: fw, search: search, dom: dom };
   }
+
+  // Rulebook: a non-MP-domicile student can take the general/UR seats at PRIVATE (self-financing)
+  // colleges, but only the 5% All-India seats at government / aided / university institutes.
+  function nonMpOpen(type) { return /private|self.?financ/i.test(type || ""); }
 
   /* ---------- shared UI: results table ---------- */
   function renderResults(results, container, opts) {
@@ -1073,9 +1085,10 @@
     loadAll(["colleges", "branches", "cities", "intake"]).then(function (a) {
       var ctx = buildContext(a[0], a[1], a[2], a[3], {});
       var fc = buildFilters(ctx, filtersBox, { fwLabel: "Only colleges offering TFW (fee-waiver) seats",
-        search: true, searchPlaceholder: "Type a college name or city…" });
+        search: true, searchPlaceholder: "Type a college name or city…", domicile: true });
       function run() {
         var city = fc.city.value, type = fc.type.value, bid = fc.branch.value, fwOnly = fc.fw.checked;
+        var dom = fc.dom ? fc.dom.value : "mp";
         var q = (fc.search && fc.search.value || "").trim().toLowerCase();
         var list = a[0].colleges.filter(function (c) {
           if (c.historical) return false;           // explorer shows current 2026-27 colleges only
@@ -1091,6 +1104,15 @@
           return true;
         });
         results.innerHTML = "";
+        if (dom === "other") {
+          var openN = list.filter(function (c) { return nonMpOpen(c.type); }).length;
+          results.appendChild(el("div", "banner banner-info",
+            "<strong>Non-MP domicile:</strong> MP counselling keeps ~85&ndash;90% of seats for MP-domicile candidates, " +
+            "and reservation, fee-waiver and the female pool don&rsquo;t apply to you. You can take the " +
+            "<strong>general (UR) seats at private / self-financing colleges</strong>, but only the <strong>5% All-India seats</strong> " +
+            "at government, aided and university institutes. Each college is tagged with what&rsquo;s open to you below " +
+            "(<strong>" + openN + "</strong> of " + list.length + " are private/self-financing). Verify with DTE."));
+        }
         results.appendChild(el("p", "result-summary", "<strong>" + list.length + "</strong> colleges"));
         list.sort(function (x, y) { return (x.name || "").localeCompare(y.name || ""); });
         list.forEach(function (c) {
@@ -1105,9 +1127,14 @@
           var meta = [c.city, c.type, c.university, totalSeats + " seats"]
             .filter(function (x) { return x != null && x !== ""; })
             .map(function (x) { return esc(String(x)); }).join(" &middot; ");   // join only non-empty (no leading separator for null city)
+          var access = (dom === "other")
+            ? (nonMpOpen(c.type)
+              ? "<p class='co-access'><span class='pool' title='Private / self-financing — its general (UR) seats are open to non-MP students'>Open to non-MP &mdash; general seats</span></p>"
+              : "<p class='co-access'><span class='pool muted' title='Government / aided / university — only the 5% All-India seats are open to non-MP students'>All-India seats only (~5%)</span></p>")
+            : "";
           var href = BASE + "/college/?id=" + encodeURIComponent(c.id);
           card.innerHTML = "<h3><a href='" + href + "'>" + esc(c.name) + "</a></h3>" +
-            "<p class='muted'>" + meta + "</p><div class='chips'>" + branchChips + "</div>";
+            "<p class='muted'>" + meta + "</p>" + access + "<div class='chips'>" + branchChips + "</div>";
           card.style.cursor = "pointer";   // whole card opens the college page (title already links too)
           card.addEventListener("click", function (e) { if (!e.target.closest("a")) location.href = href; });
           results.appendChild(card);
