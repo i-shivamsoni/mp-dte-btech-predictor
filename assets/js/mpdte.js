@@ -396,16 +396,16 @@
       });
     }
 
-    // ---- Sort control. Default groups by round (the simulator's core "which round do I
-    //      get this in?" view). Other modes flatten every round into ONE table sorted by
-    //      closing rank / seats; each row still shows its round in the basis column. ----
+    // ---- Sort control. The round sections (R1 / Upgrade / R2) ALWAYS stay — that's the
+    //      simulator's whole point. The control only reorders rows WITHIN each round, so
+    //      sorting never collapses the round grouping. ----
     var SIM_CAP = 50;
     var sortSel = null;
     if (reachable.length > 1) {
       var sortBar = el("div", "sim-sort");
-      sortBar.appendChild(el("label", "strat-lbl", "Sort the seat-pools by"));
+      sortBar.appendChild(el("label", "strat-lbl", "Sort each round by"));
       sortSel = el("select"); sortSel.id = "sim-sort-sel";
-      [["round", "Round — when you'd get in"],
+      [["demand", "Demand — most sought-after first"],
        ["close-asc", "Closing rank — toughest first"],
        ["close-desc", "Closing rank — safest first"],
        ["seats", "Seats — most first"]].forEach(function (o) {
@@ -417,7 +417,7 @@
     var rounds = el("div", "sim-rounds");
     container.appendChild(rounds);
 
-    // one round/flat table, capped at SIM_CAP with its own show-all toggle
+    // one round's table, capped at SIM_CAP with its own show-all toggle
     function drawCapped(bucket, all) {
       var sec = el("div", "round-wrap"); rounds.appendChild(sec);
       (function draw(showAll) {
@@ -426,13 +426,25 @@
         if (all.length > SIM_CAP) {
           var wrap = el("div", "br-more-wrap"), btn = el("button", "br-more"); btn.type = "button";
           btn.innerHTML = showAll ? "Show top " + SIM_CAP + " only &uarr;"
-            : "Show all " + all.length + (bucket === "all" ? " &darr;" : " in this round &darr;");
+            : "Show all " + all.length + " in this round &darr;";
           btn.addEventListener("click", function () { draw(!showAll); });
           wrap.appendChild(btn); sec.appendChild(wrap);
         }
       })(false);
     }
-    function paintGrouped() {
+    // reorder rows WITHIN a round (they arrive demand-ordered = the default)
+    function sortRows(rows, mode) {
+      if (mode === "seats") return rows.slice().sort(function (a, b) {
+        return ((b.seats && b.seats.total) || 0) - ((a.seats && a.seats.total) || 0); });
+      if (mode === "close-asc" || mode === "close-desc") return rows.slice().sort(function (a, b) {
+        var ca = (a.closing == null ? a.bestClosing : a.closing), cb = (b.closing == null ? b.bestClosing : b.closing);
+        return (mode === "close-desc") ? (cb - ca) : (ca - cb);   // asc = toughest (lowest closing) first
+      });
+      return rows;   // "demand" — already in demand order
+    }
+    function paint() {
+      rounds.innerHTML = "";
+      var mode = sortSel ? sortSel.value : "demand";
       SECURING_ORDER.forEach(function (b) {
         var all = reachable.filter(function (r) { return r.bucket === b; });
         if (!all.length) {
@@ -443,25 +455,11 @@
             "(The upgrade round mainly lets students already allotted in Round 1 move to a higher choice.)"));
           return;
         }
-        drawCapped(b, all);
+        drawCapped(b, sortRows(all, mode));
       });
-    }
-    function paintFlat(mode) {
-      var sorted = reachable.slice().sort(function (a, b) {
-        if (mode === "seats") return ((b.seats && b.seats.total) || 0) - ((a.seats && a.seats.total) || 0);
-        var ca = (a.closing == null ? a.bestClosing : a.closing),
-            cb = (b.closing == null ? b.bestClosing : b.closing);
-        return (mode === "close-desc") ? (cb - ca) : (ca - cb);   // close-asc = toughest (lowest closing) first
-      });
-      drawCapped("all", sorted);
-    }
-    function paint() {
-      rounds.innerHTML = "";
-      var m = sortSel ? sortSel.value : "round";
-      if (m === "round") paintGrouped(); else paintFlat(m);
     }
     if (sortSel) {
-      sortSel.value = opts.sort || "round"; if (!sortSel.value) sortSel.value = "round";   // honor ?sort= (default if unknown)
+      sortSel.value = opts.sort || "demand"; if (!sortSel.value) sortSel.value = "demand";   // honor ?sort= (default if unknown)
       sortSel.addEventListener("change", function () { if (opts.onSort) opts.onSort(sortSel.value); paint(); });
     }
     paint();
@@ -477,8 +475,7 @@
     var sec = el("section", "round-block round-" + bucket);
     var head = (bucket === "r1") ? "Likely in Round 1"
       : (bucket === "r1u") ? "Likely in the First-Round Upgrade"
-      : (bucket === "r2") ? "Likely securable by Round 2"
-      : (bucket === "all") ? "Seat-pools you qualify for" : "Out of reach";
+      : (bucket === "r2") ? "Likely securable by Round 2" : "Out of reach";
     sec.appendChild(el("h2", "round-title", esc(head) + " <span class='round-count'>" + (total || rows.length) + "</span>"));
     var wrap = el("div", "table-wrap"), t = el("table", "results sim-results");
     t.innerHTML = "<thead><tr><th class='num'>#</th><th>College &middot; Branch</th><th>Pool</th>" +
@@ -490,8 +487,7 @@
       var seats = r.seats ? (fmt(r.seats.total) + (r.seats.tfw ? " <span class='tfw'>(" + r.seats.tfw + " TFW)</span>" : "")) : "<span class='muted' title='no current intake row matched'>n/a</span>";
       var hist = r.historical ? " <span class='muted' title='historical college — not in current intake'>&middot; historical</span>" : "";
       var up = r.viaUpgrade ? " <span class='sub-note' title='reachable in Round 1 only after the first-round upgrade'>incl. upgrade</span>" : "";
-      var rb = (bucket === "all") ? r.bucket : bucket;   // flat sort: each row carries its own round
-      var closeSub = (rb === "out") ? "out of reach" : (r.year + " " + esc(BUCKET_SHORT[rb] || rb) + up);
+      var closeSub = (bucket === "out") ? "out of reach" : (r.year + " " + esc(BUCKET_SHORT[bucket]) + up);
       var tr = el("tr", "row-" + r.band.toLowerCase());
       tr.innerHTML =
         "<td class='num pref-no'>" + (bucket === "out" ? "&mdash;" : counter.v) + "</td>" +   // per-round position (best-first)
@@ -619,7 +615,7 @@
       ctx.avail = (a[6] && a[6].availability) || {};                     // (college -> branch -> availability horizon)
       AVAIL_YR = (a[6] && a[6].availability_year) || AVAIL_YR;
       var pred = a[5]; pred._roundMap = JEE_ROUND_MAP;
-      var ms, curStrat = qsParams().strat || "balanced", curSort = qsParams().sort || "round";
+      var ms, curStrat = qsParams().strat || "balanced", curSort = qsParams().sort || "demand";
       function setStrat(s) { curStrat = s; var u = new URLSearchParams(location.search); u.set("strat", s); history.replaceState(null, "", location.pathname + "?" + u); }
       function setSort(s) { curSort = s; var u = new URLSearchParams(location.search); u.set("sort", s); history.replaceState(null, "", location.pathname + "?" + u); }
       function run(e) {
