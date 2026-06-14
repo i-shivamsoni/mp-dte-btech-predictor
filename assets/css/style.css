@@ -230,12 +230,12 @@ body[data-page="accuracy"] main.container { max-width: 940px; }
 .strat-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
 .strat-desc { margin: 0 0 8px; }
 
-/* simulator: click-to-sort column headings */
+/* click-to-sort column headings (simulator + 12th-% predictor) */
 .sim-sort-hint { font-size: 13px; margin: 18px 0 6px; }
-.sim-results th.sortable { cursor: pointer; user-select: none; -webkit-user-select: none; }
-.sim-results th.sortable:hover { color: var(--brand); }
-.sim-results th.sorted { color: var(--brand); }
-.sim-results th .sort-ar { margin-left: 2px; font-weight: 700; }
+.results th.sortable { cursor: pointer; user-select: none; -webkit-user-select: none; }
+.results th.sortable:hover { color: var(--brand); }
+.results th.sorted { color: var(--brand); }
+.results th .sort-ar { margin-left: 2px; font-weight: 700; }
 
 /* Branch-ranks "show all" toggle */
 .br-more-wrap { text-align: center; margin: 16px 0 4px; }

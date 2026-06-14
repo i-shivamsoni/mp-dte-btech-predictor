@@ -795,32 +795,84 @@
     var reachable = results.filter(function (r) { return r.band !== "Unreachable"; });
     var unreachable = results.filter(function (r) { return r.band === "Unreachable"; });
 
-    var summary = el("p", "result-summary",
+    container.appendChild(el("p", "result-summary",
       "<strong>" + reachable.length + "</strong> reachable college&times;branch option" + (reachable.length === 1 ? "" : "s") +
-      (unreachable.length ? " &middot; " + unreachable.length + " out of reach" : ""));
-    container.appendChild(summary);
+      (unreachable.length ? " &middot; " + unreachable.length + " out of reach" : "")));
 
-    container.appendChild(tableFor(reachable.length ? reachable : results, opts));
-    if (unreachable.length) {
-      var det = el("details", "unreachable");
-      det.appendChild(el("summary", null, "Show " + unreachable.length + " out-of-reach options"));
-      det.appendChild(tableFor(unreachable, opts));
-      container.appendChild(det);
+    var sortState = resParseSort(opts.sort);
+    if (reachable.length > 1) container.appendChild(el("p", "muted sim-sort-hint",
+      "Tip: <strong>click a column heading</strong> to sort (click again to reverse). &ldquo;#&rdquo; restores the recommended order."));
+    var body = el("div"); container.appendChild(body);
+    function paint() {
+      body.innerHTML = "";
+      body.appendChild(tableFor(resSort(reachable.length ? reachable : results, sortState), opts, sortState));
+      if (unreachable.length) {
+        var det = el("details", "unreachable");
+        det.appendChild(el("summary", null, "Show " + unreachable.length + " out-of-reach options"));
+        det.appendChild(tableFor(unreachable, opts));   // out-of-reach: plain (non-sortable) table
+        body.appendChild(det);
+      }
     }
+    body.addEventListener("click", function (e) {
+      var th = e.target.closest && e.target.closest("th[data-sort]");
+      if (!th) return;
+      var col = th.getAttribute("data-sort");
+      if (col === "rec") sortState = { col: "rec", dir: 1 };
+      else if (col === sortState.col) sortState = { col: col, dir: -sortState.dir };
+      else sortState = { col: col, dir: 1 };
+      if (opts.onSort) opts.onSort(resEncodeSort(sortState));
+      paint();
+    });
+    paint();
   }
 
   function bandTag(b) { return '<span class="tag tag-' + b.toLowerCase() + '">' + b + "</span>"; }
 
-  function tableFor(rows, opts) {
+  // ---- 12th-% predictor results table: columns + click-to-sort (one flat table) ----
+  var RES_COLS = [
+    { k: "rec", h: "#", cls: "num" }, { k: "college", h: "College" }, { k: "city", h: "City" },
+    { k: "branch", h: "Branch" }, { k: "type", h: "Type" },
+    { k: "closing", h: "Closing rank", cls: "num", sub: "basis" },
+    { k: "seats", h: "Seats", cls: "num", sub: "(TFW)" }, { k: "chance", h: "Chance" }
+  ];
+  var RES_KEYS = {}; RES_COLS.forEach(function (c) { RES_KEYS[c.k] = 1; });
+  var RES_BAND = { Safe: 0, Moderate: 1, Reach: 2, Unreachable: 3 };
+  function resHead(sort) {   // sort = {col,dir} -> clickable headers; falsy -> plain (out-of-reach table)
+    return "<thead><tr>" + RES_COLS.map(function (c) {
+      var active = sort && sort.col === c.k;
+      var ar = (active && c.k !== "rec") ? " <span class='sort-ar'>" + (sort.dir < 0 ? "&darr;" : "&uarr;") + "</span>" : "";
+      var cls = [c.cls || "", sort ? "sortable" : "", active ? "sorted" : ""].filter(Boolean).join(" ");
+      return "<th" + (cls ? " class='" + cls + "'" : "") + (sort ? " data-sort='" + c.k + "'" : "") + ">" +
+        c.h + (c.sub ? "<br><span class='sub'>" + c.sub + "</span>" : "") + ar + "</th>";
+    }).join("") + "</tr></thead>";
+  }
+  function resKey(r, col) {
+    if (col === "closing") return (r.closing == null ? 9e9 : r.closing);
+    if (col === "seats") return (r.seats && r.seats.total) || 0;
+    if (col === "chance") return RES_BAND[r.band] || 0;
+    return (r[col] || "").toString().toLowerCase();   // college / city / branch / type
+  }
+  function resSort(rows, st) {
+    if (!st || st.col === "rec") return rows;          // "rec" = the recommended order (band, then margin)
+    return rows.slice().sort(function (a, b) {
+      var ka = resKey(a, st.col), kb = resKey(b, st.col);
+      var c = (typeof ka === "string") ? ka.localeCompare(kb) : (ka - kb);
+      return c * st.dir;
+    });
+  }
+  function resParseSort(s) {
+    var m = /^(.+)-(asc|desc)$/.exec(s || "");
+    return (m && RES_KEYS[m[1]] && m[1] !== "rec") ? { col: m[1], dir: m[2] === "desc" ? -1 : 1 } : { col: "rec", dir: 1 };
+  }
+  function resEncodeSort(st) { return st.col === "rec" ? "rec" : st.col + (st.dir < 0 ? "-desc" : "-asc"); }
+
+  function tableFor(rows, opts, sort) {
     var wrap = el("div", "table-wrap");
     var t = el("table", "results");
-    t.innerHTML = "<thead><tr>" +
-      "<th>College</th><th>City</th><th>Branch</th><th>Type</th>" +
-      "<th class='num'>Closing rank<br><span class='sub'>basis</span></th>" +
-      "<th class='num'>Seats<br><span class='sub'>(TFW)</span></th>" +
-      "<th>Chance</th></tr></thead>";
-    var tb = el("tbody");
+    t.innerHTML = resHead(sort);
+    var tb = el("tbody"), n = 0;
     rows.forEach(function (r) {
+      n += 1;
       var seats = r.seats ? (fmt(r.seats.total) + (r.seats.tfw ? " <span class='tfw'>(" + r.seats.tfw + " TFW)</span>" : ""))
         : "<span class='muted' title='no 2026-27 intake row matched'>n/a</span>";
       var pool = r.tfw
@@ -834,6 +886,7 @@
       var hist = r.historical ? " <span class='muted' title='historical college — not in 2026-27 intake'>&middot; historical</span>" : "";
       var tr = el("tr", "row-" + r.band.toLowerCase());
       tr.innerHTML =
+        "<td class='num pref-no'>" + n + "</td>" +
         "<td>" + esc(r.college) + hist + "</td>" +
         "<td>" + esc(r.city) + "</td>" +
         "<td>" + esc(r.branch) + pool + "</td>" +
@@ -917,6 +970,8 @@
             : pred.years[pred.years.length - 1]);
       }
       var p = qsParams();
+      var curSort = p.sort || "rec";
+      function setSort(s) { curSort = s; var u = new URLSearchParams(location.search); u.set("sort", s); history.replaceState(null, "", location.pathname + "?" + u); }
       function setVal(id, v) { var e = document.getElementById(id); if (e && v != null && v !== "") e.value = v; }
       setVal("in-rank", p.rank); setVal("in-pct", p.pct); setVal("in-cat", p.cat);
       setVal("in-gender", p.gender); setVal("in-dom", p.dom);
@@ -934,9 +989,11 @@
           social: social, gender: gEl ? gEl.value : "M", domicile: dEl ? dEl.value : "other",
           tfw: fc.fw.checked, city: fc.city.value || null, type: fc.type.value || null,
           branchSet: fc.branch.value ? (function () { var s = {}; s[fc.branch.value] = 1; return s; })() : null,
+          sort: curSort, onSort: setSort,
         };
         var stateP = { cat: social, gender: opts.gender, dom: opts.domicile, tfw: opts.tfw ? 1 : "",
-          city: fc.city.value, branch: fc.branch.value, type: fc.type.value };
+          city: fc.city.value, branch: fc.branch.value, type: fc.type.value,
+          sort: curSort === "rec" ? "" : curSort };
         if (mode === "qe") {
           var pct = parseFloat(document.getElementById("in-pct").value);
           var yr = parseInt(document.getElementById("f-year").value, 10);
