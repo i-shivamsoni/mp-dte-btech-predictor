@@ -230,9 +230,12 @@ body[data-page="accuracy"] main.container { max-width: 940px; }
 .strat-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
 .strat-desc { margin: 0 0 8px; }
 
-/* simulator: sort-the-seat-pools control (sits above the round tables) */
-.sim-sort { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 22px 0 10px; }
-.sim-sort select { min-width: 240px; padding: 9px 12px; }
+/* simulator: click-to-sort column headings */
+.sim-sort-hint { font-size: 13px; margin: 18px 0 6px; }
+.sim-results th.sortable { cursor: pointer; user-select: none; -webkit-user-select: none; }
+.sim-results th.sortable:hover { color: var(--brand); }
+.sim-results th.sorted { color: var(--brand); }
+.sim-results th .sort-ar { margin-left: 2px; font-weight: 700; }
 
 /* Branch-ranks "show all" toggle */
 .br-more-wrap { text-align: center; margin: 16px 0 4px; }

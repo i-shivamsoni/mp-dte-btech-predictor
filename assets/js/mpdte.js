@@ -396,24 +396,40 @@
       });
     }
 
-    // ---- Sort control. The round sections (R1 / Upgrade / R2) ALWAYS stay — that's the
-    //      simulator's whole point. The control only reorders rows WITHIN each round, so
-    //      sorting never collapses the round grouping. ----
+    // ---- Sorting: click a column heading. The round sections (R1 / Upgrade / R2) ALWAYS
+    //      stay — sorting only reorders rows WITHIN each round. One (column, direction)
+    //      shared across all rounds, persisted in ?sort= (e.g. closing-asc). ----
     var SIM_CAP = 50;
-    var sortSel = null;
-    if (reachable.length > 1) {
-      var sortBar = el("div", "sim-sort");
-      sortBar.appendChild(el("label", "strat-lbl", "Sort each round by"));
-      sortSel = el("select"); sortSel.id = "sim-sort-sel";
-      [["demand", "Demand — most sought-after first"],
-       ["close-asc", "Closing rank — toughest first"],
-       ["close-desc", "Closing rank — safest first"],
-       ["seats", "Seats — most first"]].forEach(function (o) {
-        var op = el("option"); op.value = o[0]; op.textContent = o[1]; sortSel.appendChild(op);
-      });
-      sortBar.appendChild(sortSel);
-      container.appendChild(sortBar);
+    var BAND_ORDER = { Safe: 0, Moderate: 1, Reach: 2, Unreachable: 3 };
+    var COL_KEYS = {}; SIM_COLS.forEach(function (c) { COL_KEYS[c.k] = 1; });
+    function parseSort(s) {
+      var m = /^(.+)-(asc|desc)$/.exec(s || "");
+      if (m && COL_KEYS[m[1]] && m[1] !== "demand") return { col: m[1], dir: m[2] === "desc" ? -1 : 1 };
+      return { col: "demand", dir: 1 };
     }
+    function encodeSort(st) { return st.col === "demand" ? "demand" : st.col + (st.dir < 0 ? "-desc" : "-asc"); }
+    var sortState = parseSort(opts.sort);
+
+    function keyOf(r, col) {
+      if (col === "college") return ((r.college || "") + " " + (r.branch || "")).toLowerCase();
+      if (col === "pool") return (poolLabel(r) || "").toLowerCase();
+      if (col === "city") return ((r.city || "") + " " + (r.type || "")).toLowerCase();
+      if (col === "closing") return (r.closing == null ? r.bestClosing : r.closing);
+      if (col === "seats") return (r.seats && r.seats.total) || 0;
+      if (col === "chance") return BAND_ORDER[r.band] || 0;
+      return 0;
+    }
+    function sortRows(rows, st) {
+      if (!st || st.col === "demand") return rows;   // the recommended (demand) order
+      return rows.slice().sort(function (a, b) {
+        var ka = keyOf(a, st.col), kb = keyOf(b, st.col);
+        var c = (typeof ka === "string") ? ka.localeCompare(kb) : (ka - kb);
+        return c * st.dir;
+      });
+    }
+
+    if (reachable.length > 1) container.appendChild(el("p", "muted sim-sort-hint",
+      "Tip: <strong>click a column heading</strong> to sort each round by it (click again to reverse). &ldquo;#&rdquo; restores the recommended order."));
     var rounds = el("div", "sim-rounds");
     container.appendChild(rounds);
 
@@ -422,7 +438,7 @@
       var sec = el("div", "round-wrap"); rounds.appendChild(sec);
       (function draw(showAll) {
         sec.innerHTML = "";
-        sec.appendChild(simRoundSection(bucket, showAll ? all : all.slice(0, SIM_CAP), { v: 0 }, all.length));
+        sec.appendChild(simRoundSection(bucket, showAll ? all : all.slice(0, SIM_CAP), { v: 0 }, all.length, sortState));
         if (all.length > SIM_CAP) {
           var wrap = el("div", "br-more-wrap"), btn = el("button", "br-more"); btn.type = "button";
           btn.innerHTML = showAll ? "Show top " + SIM_CAP + " only &uarr;"
@@ -432,19 +448,8 @@
         }
       })(false);
     }
-    // reorder rows WITHIN a round (they arrive demand-ordered = the default)
-    function sortRows(rows, mode) {
-      if (mode === "seats") return rows.slice().sort(function (a, b) {
-        return ((b.seats && b.seats.total) || 0) - ((a.seats && a.seats.total) || 0); });
-      if (mode === "close-asc" || mode === "close-desc") return rows.slice().sort(function (a, b) {
-        var ca = (a.closing == null ? a.bestClosing : a.closing), cb = (b.closing == null ? b.bestClosing : b.closing);
-        return (mode === "close-desc") ? (cb - ca) : (ca - cb);   // asc = toughest (lowest closing) first
-      });
-      return rows;   // "demand" — already in demand order
-    }
     function paint() {
       rounds.innerHTML = "";
-      var mode = sortSel ? sortSel.value : "demand";
       SECURING_ORDER.forEach(function (b) {
         var all = reachable.filter(function (r) { return r.bucket === b; });
         if (!all.length) {
@@ -455,13 +460,20 @@
             "(The upgrade round mainly lets students already allotted in Round 1 move to a higher choice.)"));
           return;
         }
-        drawCapped(b, sortRows(all, mode));
+        drawCapped(b, sortRows(all, sortState));
       });
     }
-    if (sortSel) {
-      sortSel.value = opts.sort || "demand"; if (!sortSel.value) sortSel.value = "demand";   // honor ?sort= (default if unknown)
-      sortSel.addEventListener("change", function () { if (opts.onSort) opts.onSort(sortSel.value); paint(); });
-    }
+    // click a column heading -> re-sort every round by it (toggle asc/desc; "#" = recommended order)
+    rounds.addEventListener("click", function (e) {
+      var th = e.target.closest && e.target.closest("th[data-sort]");
+      if (!th) return;
+      var col = th.getAttribute("data-sort");
+      if (col === "demand") sortState = { col: "demand", dir: 1 };
+      else if (col === sortState.col) sortState = { col: col, dir: -sortState.dir };
+      else sortState = { col: col, dir: 1 };
+      if (opts.onSort) opts.onSort(encodeSort(sortState));
+      paint();
+    });
     paint();
     if (unreachable.length) {
       var det = el("details", "unreachable");
@@ -471,16 +483,30 @@
     }
   }
 
-  function simRoundSection(bucket, rows, counter, total) {
+  // simulator results columns — header label + sort key (drives click-to-sort)
+  var SIM_COLS = [
+    { k: "demand", h: "#", cls: "num" }, { k: "college", h: "College &middot; Branch" },
+    { k: "pool", h: "Pool" }, { k: "city", h: "City / Type" },
+    { k: "closing", h: "Closing rank", cls: "num", sub: "basis" },
+    { k: "seats", h: "Seats", cls: "num", sub: "(TFW)" }, { k: "chance", h: "Chance" }
+  ];
+  function simHead(sort) {   // sort = {col,dir} -> clickable headers; falsy -> plain (out-of-reach table)
+    return "<thead><tr>" + SIM_COLS.map(function (c) {
+      var active = sort && sort.col === c.k;
+      var ar = (active && c.k !== "demand") ? " <span class='sort-ar'>" + (sort.dir < 0 ? "&darr;" : "&uarr;") + "</span>" : "";
+      var cls = [c.cls || "", sort ? "sortable" : "", active ? "sorted" : ""].filter(Boolean).join(" ");
+      return "<th" + (cls ? " class='" + cls + "'" : "") + (sort ? " data-sort='" + c.k + "'" : "") + ">" +
+        c.h + (c.sub ? "<br><span class='sub'>" + c.sub + "</span>" : "") + ar + "</th>";
+    }).join("") + "</tr></thead>";
+  }
+  function simRoundSection(bucket, rows, counter, total, sort) {
     var sec = el("section", "round-block round-" + bucket);
     var head = (bucket === "r1") ? "Likely in Round 1"
       : (bucket === "r1u") ? "Likely in the First-Round Upgrade"
       : (bucket === "r2") ? "Likely securable by Round 2" : "Out of reach";
     sec.appendChild(el("h2", "round-title", esc(head) + " <span class='round-count'>" + (total || rows.length) + "</span>"));
     var wrap = el("div", "table-wrap"), t = el("table", "results sim-results");
-    t.innerHTML = "<thead><tr><th class='num'>#</th><th>College &middot; Branch</th><th>Pool</th>" +
-      "<th>City / Type</th><th class='num'>Closing rank<br><span class='sub'>basis</span></th>" +
-      "<th class='num'>Seats<br><span class='sub'>(TFW)</span></th><th>Chance</th></tr></thead>";
+    t.innerHTML = simHead(sort);
     var tb = el("tbody");
     rows.forEach(function (r) {
       counter.v += 1;
