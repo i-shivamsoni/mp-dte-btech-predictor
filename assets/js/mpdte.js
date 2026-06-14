@@ -97,8 +97,8 @@
   function bandFor(rank, closing, bucket, cleared, total) {
     if (closing == null) return "Unreachable";
     var idx = (rank * 5 <= closing * 4) ? 0 : (rank <= closing) ? 1 : (rank * 20 <= closing * 23) ? 2 : 3;
-    if (bucket === "r2" && idx < 2) idx = 2;                   // 2nd-round availability is volatile
     if (total >= 2) { if (cleared === total) idx -= 1; else if (cleared === 0) idx += 1; }
+    if (bucket === "r2" && idx < 2) idx = 2;   // 2nd-round availability is volatile — floor AFTER the multi-year nudge, else a pool that cleared every prior year gets un-floored back below Reach
     if (idx > 2) idx = 2;        // a pool WITH a securing round is reachable -> never "Unreachable"
     return BANDS[idx < 0 ? 0 : idx];
   }
@@ -565,11 +565,16 @@
       var cityMap = {};
       (a[0].colleges || []).forEach(function (c) { if (c.city) cityMap[c.city] = 1; });
       var cities = Object.keys(cityMap).sort();
-      // only branches that actually have a priority list, by label
-      var bids = Object.keys(bp).filter(function (b) { return bp[b] && bp[b].length; })
+      // count only colleges that still have 2026-27 intake — the page drops historical/defunct colleges
+      // before ranking, so the dropdown count must match (else a branch whose only college is historical
+      // shows "(1)" but renders empty), and branches with zero live colleges are excluded entirely.
+      function liveCount(b) {
+        return (bp[b] || []).filter(function (pair) { var c = cols[pair[0]]; return c && !c.historical; }).length;
+      }
+      var bids = Object.keys(bp).filter(function (b) { return liveCount(b) > 0; })
         .sort(function (x, y) { return (blab[x] || x).localeCompare(blab[y] || y); });
       sel.innerHTML = bids.map(function (b) {
-        return "<option value='" + esc(b) + "'>" + esc(blab[b] || b) + " (" + bp[b].length + ")</option>";
+        return "<option value='" + esc(b) + "'>" + esc(blab[b] || b) + " (" + liveCount(b) + ")</option>";
       }).join("");
       if (typeSel) {
         typeSel.innerHTML = "<option value=''>All institute types</option>" + types.map(function (t) {
@@ -582,14 +587,15 @@
         }).join("");
       }
       var RLAB = { 1: "mid", 2: "open", 3: "close" };   // index into [cid, mid, opening, closing]
-      function rowHtml(item, bid, seq, mi) {
+      function rowHtml(item, bid, seq, mi, sort) {
         var pair = item.pair;
         var c = cols[pair[0]] || {}, t = c.type || "—";
         var govt = /government|university/i.test(t);
-        // # = sequential position in the CURRENT (filtered/sorted) view; when that differs from
-        // the college's overall within-branch demand rank, show the overall rank as a sub-label.
+        // # = sequential position in the CURRENT (filtered/sorted) view. Show the overall demand rank
+        // as a sub-label whenever the view is reordered (name / demand-desc) OR a filter has shifted seq
+        // off the demand rank — but NOT in the default demand view where seq already IS the demand rank.
         var numCell = "<span class='br-rank'>" + seq + "</span>" +
-          (seq !== item.rank ? "<span class='sub'>demand&nbsp;#" + item.rank + "</span>" : "");
+          ((sort || seq !== item.rank) ? "<span class='sub'>demand&nbsp;#" + item.rank + "</span>" : "");
         // headline = the active metric; underneath, the other two of opening/mid/closing so the full
         // admitted-rank range is always visible regardless of which metric you rank by.
         var others = [2, 1, 3].filter(function (k) { return k !== mi; })
@@ -629,11 +635,14 @@
           return (cols[a.pair[0]].name || "").localeCompare(cols[b.pair[0]].name || "");
         });
         var matchTotal = lst.length, capped = matchTotal > CAP && !expanded;
-        var rows = (capped ? lst.slice(0, CAP) : lst).map(function (item, idx) { return rowHtml(item, bid, idx + 1, mi); }).join("");
-        var criteria = [];
-        if (type) criteria.push("<strong>" + esc(type) + "</strong>");
-        if (city) criteria.push("<strong>" + esc(city) + "</strong>");
-        var filterNote = criteria.length ? " Filtered to " + criteria.join(" in ") + ": <strong>" + matchTotal + "</strong> match." : "";
+        var rows = (capped ? lst.slice(0, CAP) : lst).map(function (item, idx) { return rowHtml(item, bid, idx + 1, mi, sort); }).join("");
+        var locBits = [];
+        if (type) locBits.push("<strong>" + esc(type) + "</strong>");
+        if (city) locBits.push("<strong>" + esc(city) + "</strong>");
+        var crit = [];
+        if (locBits.length) crit.push(locBits.join(" in "));
+        if (avh && AVAIL_LABEL[avh]) crit.push("<strong>" + esc(AVAIL_LABEL[avh].t) + "</strong> seats");   // surface the avail filter in the count note
+        var filterNote = crit.length ? " Filtered to " + crit.join(", ") + ": <strong>" + matchTotal + "</strong> match." : "";
         out.innerHTML =
           "<p class='muted'>Colleges offering <strong>" + esc(blab[bid] || bid) + "</strong>, ranked by the open/general (UR) " +
           "Round-1 seat&rsquo;s <strong>" + M.lab + "</strong> over 2023&ndash;25; <strong>lower = more in demand</strong>. " +

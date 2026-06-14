@@ -1,8 +1,8 @@
 <header class="site-nav">
   <div class="container nav-inner">
     <a class="brand" href="{{ '/' | relative_url }}">MP&#8209;DTE&nbsp;Predictor</a>
-    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
-    <nav class="nav-links">
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="nav-links">&#9776;</button>
+    <nav class="nav-links" id="nav-links">
       <a href="{{ '/predictor/' | relative_url }}">Simulator</a>
       <a href="{{ '/percentage-predictor/' | relative_url }}">12th&nbsp;%</a>
       <a href="{{ '/college-explorer/' | relative_url }}">Colleges</a>

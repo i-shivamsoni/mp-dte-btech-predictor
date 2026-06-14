@@ -26,6 +26,12 @@ exclude:
   - "*.py"
   - "*.sh"
   - "*.md"
+  # local-only / PII source dirs — never publish (defense-in-depth; they're also gitignored,
+  # so absent from the CI build, but this stops Jekyll copying them into _site if ever present locally)
+  - MeritLists/
+  - DTE_MeritList_BTech/
+  - RTI/
+  - stitch_mp_dte_college_predictor/
 
 include:
   - assets
