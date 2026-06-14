@@ -9,7 +9,7 @@
   /* ---------- data loading ---------- */
   function load(name) {
     if (cache[name]) return cache[name];
-    cache[name] = fetch(BASE + "/assets/data/" + name + ".json")
+    cache[name] = fetch(BASE + "/assets/data/" + name + ".json" + (window.DATA_V ? "?v=" + window.DATA_V : ""))   // cache-bust on each build
       .then(function (r) {
         if (!r.ok) throw new Error("Failed to load " + name + " (" + r.status + ")");
         return r.json();

@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
-  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}?v={{ site.time | date: '%s' }}">
   {% seo %}
-  <script>window.BASEURL = "{{ site.baseurl }}";</script>
+  <script>window.BASEURL = "{{ site.baseurl }}"; window.DATA_V = "{{ site.time | date: '%s' }}";</script>
 </head>
 <body data-page="{{ page.page_id }}">
   {% include nav.html %}
@@ -22,10 +22,10 @@
     {{ content }}
   </main>
   {% include footer.html %}
-  <script src="{{ '/assets/js/mpdte.js' | relative_url }}"></script>
+  <script src="{{ '/assets/js/mpdte.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
   {% if page.page_id == "demand" %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="{{ '/assets/js/dashboard.js' | relative_url }}"></script>
+    <script src="{{ '/assets/js/dashboard.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
   {% endif %}
 </body>
 </html>
