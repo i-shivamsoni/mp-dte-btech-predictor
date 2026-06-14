@@ -541,7 +541,8 @@
   function initBranchRankings() {
     var sel = document.getElementById("br-branch"), typeSel = document.getElementById("br-type"),
       citySel = document.getElementById("br-city"), availSel = document.getElementById("br-avail"),
-      sortSel = document.getElementById("br-sort"), out = document.getElementById("br-list");
+      sortSel = document.getElementById("br-sort"), metricSel = document.getElementById("br-metric"),
+      out = document.getElementById("br-list");
     if (!sel || !out) return;
     loadAll(["colleges", "branches", "demand_stats"]).then(function (a) {
       var cols = {}; (a[0].colleges || []).forEach(function (c) { cols[c.id] = c; });
@@ -580,20 +581,28 @@
           "<td class='num'>" + numCell + "</td>" +
           "<td><span class='co-name'>" + esc(c.name || pair[0]) + "</span><span class='sub'>" + esc(c.city || "") + "</span></td>" +
           "<td><span class='pool " + (govt ? "" : "muted") + "'>" + esc(t) + "</span></td>" +
-          "<td class='num'>~" + fmt(pair[1]) + "</td>" +
+          "<td class='num'>~" + fmt(item.val) + "</td>" +
           "<td>" + (horizonBadge((avail[pair[0]] || {})[bid]) || "<span class='muted sub'>&mdash;</span>") + "</td></tr>";
       }
       var CAP = 50;
+      // each branch_priority entry is [cid, mid, opening, closing]; pick the column to rank/show by.
+      var METRIC = {
+        "":     { idx: 1, lab: "admitted-rank midpoint (opening&ndash;closing)", sub: "admit-rank mid" },
+        open:   { idx: 2, lab: "opening rank (the best/first rank admitted)", sub: "opening rank" },
+        close:  { idx: 3, lab: "closing rank (the last rank admitted)", sub: "closing rank" },
+      };
       function render(bid, expanded) {
         var all = bp[bid] || [], type = typeSel ? typeSel.value : "", city = citySel ? citySel.value : "",
-          avh = availSel ? availSel.value : "", sort = sortSel ? sortSel.value : "";
-        // `rank` = the college's within-branch DEMAND rank (stable position in the demand list),
-        // so it stays meaningful no matter how the rows are sorted below.
+          avh = availSel ? availSel.value : "", sort = sortSel ? sortSel.value : "",
+          M = METRIC[metricSel ? metricSel.value : ""] || METRIC[""], mi = M.idx;
+        // overall demand `rank` = position in the FULL list re-ordered by the chosen metric (lower = better);
+        // it stays meaningful no matter how the rows are sorted/filtered below.
+        var ordered = all.slice().sort(function (a, b) { return (a[mi] - b[mi]) || (a[0] < b[0] ? -1 : 1); });
         var lst = [];
-        all.forEach(function (pair, i) {
+        ordered.forEach(function (pair, i) {
           var c = cols[pair[0]] || {};
           if (c && !c.historical && (!type || c.type === type) && (!city || c.city === city) &&
-              (!avh || ((avail[pair[0]] || {})[bid] || {}).h === avh)) lst.push({ pair: pair, rank: i + 1 });
+              (!avh || ((avail[pair[0]] || {})[bid] || {}).h === avh)) lst.push({ pair: pair, rank: i + 1, val: pair[mi] });
         });
         if (sort === "demand-desc") lst.reverse();                                  // least sought-after first
         else if (sort === "name") lst.sort(function (a, b) {
@@ -606,13 +615,12 @@
         if (city) criteria.push("<strong>" + esc(city) + "</strong>");
         var filterNote = criteria.length ? " Filtered to " + criteria.join(" in ") + ": <strong>" + matchTotal + "</strong> match." : "";
         out.innerHTML =
-          "<p class='muted'>Colleges offering <strong>" + esc(blab[bid] || bid) + "</strong>, ordered by historical demand " +
-          "(most sought-after first). &ldquo;Typical demand&rdquo; is the open/general (UR) Round-1 seat&rsquo;s " +
-          "<strong>admitted-rank midpoint</strong> (opening&ndash;closing) over 2023&ndash;25; <strong>lower = more in demand</strong>. " +
-          "Same order the simulator fills your choice list in." +
+          "<p class='muted'>Colleges offering <strong>" + esc(blab[bid] || bid) + "</strong>, ranked by the open/general (UR) " +
+          "Round-1 seat&rsquo;s <strong>" + M.lab + "</strong> over 2023&ndash;25; <strong>lower = more in demand</strong>. " +
+          (mi === 1 ? "Same order the simulator fills your choice list in. " : "") +
           filterNote + (capped ? " <strong>Showing " + CAP + " of " + matchTotal + ".</strong>" : "") + "</p>" +
           (matchTotal ? "<div class='table-wrap'><table class='results'><thead><tr><th class='num'>#</th><th>College</th>" +
-          "<th>Type</th><th class='num'>Typical demand<br><span class='sub'>admit-rank mid</span></th>" +
+          "<th>Type</th><th class='num'>Typical demand<br><span class='sub'>" + M.sub + "</span></th>" +
           "<th>Seats last to<br><span class='sub'>" + AVAIL_YR + "</span></th></tr></thead><tbody>" +
           rows + "</tbody></table></div>" : "<p class='empty'>No colleges match this branch and filters.</p>") +
           (matchTotal > CAP ? "<div class='br-more-wrap'><button type='button' class='br-more'>" +
@@ -620,15 +628,16 @@
         var mb = out.querySelector(".br-more");
         if (mb) mb.addEventListener("click", function () { render(bid, !expanded); });
       }
-      function syncUrl() { setParams({ b: sel.value, type: typeSel && typeSel.value, city: citySel && citySel.value, avail: availSel && availSel.value, sort: sortSel && sortSel.value }); }
+      function syncUrl() { setParams({ b: sel.value, type: typeSel && typeSel.value, city: citySel && citySel.value, avail: availSel && availSel.value, sort: sortSel && sortSel.value, metric: metricSel && metricSel.value }); }
       var params = qsParams(), want = params.b;
       if (want && bids.indexOf(want) > -1) sel.value = want; else if (bids.indexOf("cse") > -1) sel.value = "cse";
       if (typeSel && params.type && types.indexOf(params.type) > -1) typeSel.value = params.type;
       if (citySel && params.city && cities.indexOf(params.city) > -1) citySel.value = params.city;
       if (availSel && params.avail && AVAIL_LABEL[params.avail]) availSel.value = params.avail;
       if (sortSel && params.sort) sortSel.value = params.sort;
+      if (metricSel && (params.metric === "open" || params.metric === "close")) metricSel.value = params.metric;
       render(sel.value);
-      [sel, typeSel, citySel, availSel, sortSel].forEach(function (s) {
+      [sel, typeSel, citySel, availSel, sortSel, metricSel].forEach(function (s) {
         if (s) s.addEventListener("change", function () { render(sel.value); syncUrl(); });
       });
     }).catch(function (e) { showError(out, e); });

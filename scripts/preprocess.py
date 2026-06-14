@@ -622,9 +622,12 @@ def main():
     #   floats AND discriminates across the full range. Score = median, across the recent 3 years
     #   (2023-25, matching the predictor), of that year's Round-1 (RF/FR) UR/X/OP midpoint (fallbacks:
     #   any-round UR/X/OP, then any general X-class). PER BRANCH; pure data, no institute-type adjustment.
+    # We carry all three so the Branch-ranks page can re-rank by OPENING (best admitted), MIDPOINT
+    # (default) or CLOSING (last admitted) — the midpoint can bury a college that has a strong opening
+    # but a wide range. The default order (and the simulator's choice order) stays MIDPOINT-based.
     DEMAND_YEARS = set(range(2023, 2026))   # recent 3 yrs (matches the predictor window)
     cb_year = collections.defaultdict(lambda: collections.defaultdict(
-        lambda: {"rf": [], "ur": [], "x": []}))       # (cid,bid) -> year -> admitted-range midpoints by specificity
+        lambda: {"rf": [], "ur": [], "x": []}))       # (cid,bid) -> year -> [(open,mid,close)] by specificity
     for r in cutoffs:
         if r["_uni"] != "jee" or r["year"] not in DEMAND_YEARS or not r["_cid"]:
             continue
@@ -633,26 +636,29 @@ def main():
         op = to_int(r.get("opening_rank")); cl = to_int(r.get("closing_rank"))
         if op is None or cl is None:
             continue
-        mid = (op + cl) // 2                           # midpoint of the admitted-rank range (float-robust)
+        tup = (op, (op + cl) // 2, cl)                # (opening, midpoint, closing) of the admitted-rank range
         slot = cb_year[(r["_cid"], r["_bid"])][r["year"]]
-        slot["x"].append(mid)                         # any general-class social (fallback)
+        slot["x"].append(tup)                         # any general-class social (fallback)
         if (r.get("_social") or "UR") == "UR" and (r.get("_gender") or "OP") == "OP" and r.get("fw") != "Y":
-            slot["ur"].append(mid)                    # UR/X/OP open seat
+            slot["ur"].append(tup)                    # UR/X/OP open seat
             if r["_rc"] in ("RF", "FR"):
-                slot["rf"].append(mid)                # Round-1 UR/X/OP = cleanest demand signal
-    cb_score = {}
+                slot["rf"].append(tup)                # Round-1 UR/X/OP = cleanest demand signal
+    cb_score = {}                                     # (cid,bid) -> (mid, opening, closing) demand scores
     for (cid, bid), yd in cb_year.items():
-        yr_meds = [statistics.median(s["rf"] or s["ur"] or s["x"])
-                   for s in yd.values() if (s["rf"] or s["ur"] or s["x"])]
-        if yr_meds:
-            cb_score[(cid, bid)] = int(statistics.median(yr_meds))
-    branch_priority = {}                              # branchId -> [[collegeId, demandClosing], ...] best-first
+        rows_by_year = [(s["rf"] or s["ur"] or s["x"]) for s in yd.values() if (s["rf"] or s["ur"] or s["x"])]
+        if not rows_by_year:
+            continue
+        # each metric = median across years of that year's median of the component (same robustness, per component)
+        def comp(idx):
+            return int(statistics.median([statistics.median([t[idx] for t in rows]) for rows in rows_by_year]))
+        cb_score[(cid, bid)] = (comp(1), comp(0), comp(2))   # (mid, opening, closing)
+    branch_priority = {}                              # branchId -> [[cid, mid, opening, closing], ...] best-first (by mid)
     by_branch_cb = collections.defaultdict(list)
     for (cid, bid), sc in cb_score.items():
         by_branch_cb[bid].append((cid, sc))
     for bid, lst in by_branch_cb.items():
-        lst.sort(key=lambda x: (x[1], x[0]))          # demand score asc (pure data); id = stable tiebreak
-        branch_priority[bid] = [[cid, sc] for cid, sc in lst]
+        lst.sort(key=lambda x: (x[1][0], x[0]))       # default order = midpoint asc (pure data); id = stable tiebreak
+        branch_priority[bid] = [[cid, sc[0], sc[1], sc[2]] for cid, sc in lst]
 
     # branch movement (revealed preference) from Internal Branch Change rows
     mv = collections.defaultdict(lambda: {"into": 0, "out": 0})
@@ -709,7 +715,7 @@ def main():
         "trend": {b: trend[b] for b in [d["b"] for d in demand_branches[:10]]},
         "by_city": [{"city": c, "seats": n} for c, n in by_city.most_common()],
         "branch_movement": movement,
-        "branch_priority": branch_priority,      # branchId -> [[collegeId, demandClosing], ...] best-first
+        "branch_priority": branch_priority,      # branchId -> [[cid, mid, opening, closing], ...] best-first (by mid)
         "availability": availability,            # cid -> bid -> {h: horizon r1/up/r2/qe, n: [R1,Up,R2,QE]}
         "availability_year": AVAIL_YEAR,         # the year the horizon is computed from (latest with a QE round)
     }

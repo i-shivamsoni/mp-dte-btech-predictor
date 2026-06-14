@@ -33,6 +33,14 @@ permalink: /branch-rankings/
       </select>
     </div>
     <div class="f-group">
+      <label for="br-metric">Rank by</label>
+      <select id="br-metric">
+        <option value="">Admit-rank midpoint (opening&ndash;closing)</option>
+        <option value="open">Opening rank (best admitted)</option>
+        <option value="close">Closing rank (last admitted)</option>
+      </select>
+    </div>
+    <div class="f-group">
       <label for="br-sort">Sort by</label>
       <select id="br-sort">
         <option value="">Demand &mdash; most sought-after first</option>
@@ -42,10 +50,11 @@ permalink: /branch-rankings/
     </div>
   </div>
   <p class="hint muted">
-    Demand = how competitive a college&rsquo;s open/general seat is for that branch &mdash; the midpoint of its
-    admitted-rank range (opening&ndash;closing); lower = more sought-after. Rankings are <strong>per branch</strong> —
-    a college can top one branch and sit mid-pack in another — computed purely from the official 2023&ndash;25
-    cut-offs (no reputation adjustment).
+    Demand = how competitive a college&rsquo;s open/general seat is for that branch; lower = more sought-after.
+    Use <strong>Rank by</strong> to measure it by the <strong>midpoint</strong> of the admitted-rank range (default),
+    the <strong>opening rank</strong> (best/first admitted &mdash; surfaces colleges with a strong top but a wide spread),
+    or the <strong>closing rank</strong> (last admitted). Rankings are <strong>per branch</strong> &mdash; a college can
+    top one branch and sit mid-pack in another &mdash; computed purely from the official 2023&ndash;25 cut-offs (no reputation adjustment).
   </p>
 </form>
 
