@@ -22,7 +22,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import preprocess as pp                      # reuse round/branch/category/domicile helpers
 
-CUTOFF = os.path.join(ROOT, "DTE_CutOff_BTech", "all_btech_cutoffs.json")
+CUTOFF = os.path.join(ROOT, "DTE_CutOff_BTech", "2017-2025__all-cutoffs.json")
 OUT = os.path.join(ROOT, "assets", "data", "backtest.json")
 
 
