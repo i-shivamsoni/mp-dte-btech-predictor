@@ -1086,9 +1086,11 @@
       var ctx = buildContext(a[0], a[1], a[2], a[3], {});
       var fc = buildFilters(ctx, filtersBox, { fwLabel: "Only colleges offering TFW (fee-waiver) seats",
         search: true, searchPlaceholder: "Type a college name or city…", domicile: true });
+      lockTfwByDomicile(fc.dom, fc.fw);   // TFW is MP-domicile only — disable the filter for non-MP
       function run() {
-        var city = fc.city.value, type = fc.type.value, bid = fc.branch.value, fwOnly = fc.fw.checked;
+        var city = fc.city.value, type = fc.type.value, bid = fc.branch.value;
         var dom = fc.dom ? fc.dom.value : "mp";
+        var fwOnly = fc.fw.checked && dom !== "other";   // non-MP students can't get TFW seats
         var q = (fc.search && fc.search.value || "").trim().toLowerCase();
         var list = a[0].colleges.filter(function (c) {
           if (c.historical) return false;           // explorer shows current 2026-27 colleges only
@@ -1122,7 +1124,7 @@
           var branchChips = Object.keys(seats).map(function (b) {
             var s = seats[b];
             return "<span class='chip'>" + esc(ctx.branchLabel[b] || b) + " <em>" + s.total +
-              (s.tfw ? "/" + s.tfw + " TFW" : "") + "</em></span>";
+              (dom !== "other" && s.tfw ? "/" + s.tfw + " TFW" : "") + "</em></span>";   // TFW hidden for non-MP (can't get it)
           }).join("");
           var meta = [c.city, c.type, c.university, totalSeats + " seats"]
             .filter(function (x) { return x != null && x !== ""; })
