@@ -606,34 +606,36 @@ def main():
         key=lambda x: (x["median"] is None, x["median"]))
 
     # ---- branch-wise priority ("demand list"): per branch, colleges ranked by demand ----
-    # Demand = the OPENING rank of the open/general (UR/X/OP) seat — the BEST-ranked student who
-    # actually chose that college+branch. We use OPENING (not closing): low-demand colleges fill
-    # their general seats down to the very last candidate, so CLOSING ranks all saturate near the
-    # max (~14 lakh in 2025) and can't tell colleges apart, whereas the opening rank discriminates
-    # across the full range and tracks real desirability. Score = median, across the recent 3 years
-    # (2023-25), of that year's Round-1 (RF/FR) UR/X/OP opening (fallbacks: any-round UR/X/OP, then any
-    # general X-class). We use 2023-25 (not 2021-25): 2021/2022 are sparse (often a single Round-1 row
-    # per college/year) and float-noisy — a top student briefly allotted then upgraded gives a freak-low
-    # opening that, as the lone value, becomes that year's median and wrongly inflates the college's
-    # demand (e.g. Oriental Bhopal was scored 49k and ranked above UIT-RGPV though it really closes ~4x
-    # later). PER BRANCH; pure data, no institute-type adjustment.
-    DEMAND_YEARS = set(range(2023, 2026))   # recent 3 yrs only — 2021/2022 are sparse & float-noisy (1-row years skew the median)
+    # Demand = how competitive the open/general (UR/X/OP) seat is, measured by the MIDPOINT of its
+    # admitted-rank range = (opening + closing)/2. We use the midpoint, not opening or closing alone:
+    #   - CLOSING alone saturates — low-demand colleges fill down to the very last candidate (~14 lakh),
+    #     so their closings are all tied and can't be ranked.
+    #   - OPENING alone is FLOAT-noisy — a top-ranked student is often briefly allotted to a college in
+    #     Round 1 then upgrades away, leaving a freak-low opening; with a single row in a year that lone
+    #     value became the year's median and wrongly inflated demand (Oriental & ~24 other CSE colleges,
+    #     e.g. ITM-Gwalior was scored top-5 on a float).
+    #   The midpoint averages each row's float-prone opening with its stable closing, so it is robust to
+    #   floats AND discriminates across the full range. Score = median, across the recent 3 years
+    #   (2023-25, matching the predictor), of that year's Round-1 (RF/FR) UR/X/OP midpoint (fallbacks:
+    #   any-round UR/X/OP, then any general X-class). PER BRANCH; pure data, no institute-type adjustment.
+    DEMAND_YEARS = set(range(2023, 2026))   # recent 3 yrs (matches the predictor window)
     cb_year = collections.defaultdict(lambda: collections.defaultdict(
-        lambda: {"rf": [], "ur": [], "x": []}))       # (cid,bid) -> year -> openings by specificity
+        lambda: {"rf": [], "ur": [], "x": []}))       # (cid,bid) -> year -> admitted-range midpoints by specificity
     for r in cutoffs:
         if r["_uni"] != "jee" or r["year"] not in DEMAND_YEARS or not r["_cid"]:
             continue
         if (r.get("_class") or "") not in ("", "X"):
             continue                                  # special-quota seats don't define general demand
-        op = to_int(r.get("opening_rank"))
-        if op is None:
+        op = to_int(r.get("opening_rank")); cl = to_int(r.get("closing_rank"))
+        if op is None or cl is None:
             continue
+        mid = (op + cl) // 2                           # midpoint of the admitted-rank range (float-robust)
         slot = cb_year[(r["_cid"], r["_bid"])][r["year"]]
-        slot["x"].append(op)                          # any general-class social (fallback)
+        slot["x"].append(mid)                         # any general-class social (fallback)
         if (r.get("_social") or "UR") == "UR" and (r.get("_gender") or "OP") == "OP" and r.get("fw") != "Y":
-            slot["ur"].append(op)                     # UR/X/OP open seat
+            slot["ur"].append(mid)                    # UR/X/OP open seat
             if r["_rc"] in ("RF", "FR"):
-                slot["rf"].append(op)                 # Round-1 UR/X/OP opening = cleanest demand signal
+                slot["rf"].append(mid)                # Round-1 UR/X/OP = cleanest demand signal
     cb_score = {}
     for (cid, bid), yd in cb_year.items():
         yr_meds = [statistics.median(s["rf"] or s["ur"] or s["x"])
