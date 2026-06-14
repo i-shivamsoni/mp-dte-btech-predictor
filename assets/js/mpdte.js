@@ -1218,6 +1218,7 @@
         "<label>Branch <select id='f-branch'>" + optList(branches, function (b) { return branchLabel[b] || b; }) + "</select></label>" +
         "<label>Year <select id='f-year'>" + optList(years) + "</select></label>" +
         "<label>Round type <select id='f-uni'><option value=''>All</option><option value='jee'>JEE rounds</option><option value='qe'>Qualifying-Exam</option></select></label>" +
+        "<label>Domicile <select id='f-dom'><option value='mp'>MP (domicile)</option><option value='other'>Other state</option></select></label>" +
         "<label>Category <select id='f-cat'>" + optList(cats) + "</select></label>" +
         "<label>Gender <select id='f-gen'>" + optList(genders, function (g) { return GENDER_LABEL[g] || g; }) + "</select></label>" +
         "<label>Special quota <select id='f-quota'>" + optList(quotas, function (q) { return QUOTA_LABEL[q] || q; }) + "</select></label>" +
@@ -1225,7 +1226,8 @@
       head.appendChild(bar);
       var fBranch = bar.querySelector("#f-branch"), fYear = bar.querySelector("#f-year"),
         fUni = bar.querySelector("#f-uni"), fCat = bar.querySelector("#f-cat"), fFw = bar.querySelector("#f-fw"),
-        fGen = bar.querySelector("#f-gen"), fQuota = bar.querySelector("#f-quota");
+        fGen = bar.querySelector("#f-gen"), fQuota = bar.querySelector("#f-quota"), fDom = bar.querySelector("#f-dom");
+      var priv = nonMpOpen(H.type);   // private/self-financing → general seats open to non-MP; else AI-only
       // default to JEE rounds so the closing-rank sort never interleaves the two (incomparable)
       // rank scales; fall back to All if this college has no JEE rows.
       if (rows.some(function (r) { return r[ix.uni] === "jee"; })) fUni.value = "jee";
@@ -1245,7 +1247,7 @@
 
       function render() {
         var fb = fBranch.value, fy = fYear.value, fu = fUni.value, fc = fCat.value, ff = fFw.checked;
-        var fg = fGen ? fGen.value : "", fq = fQuota ? fQuota.value : "";
+        var fg = fGen ? fGen.value : "", fq = fQuota ? fQuota.value : "", fd = fDom ? fDom.value : "mp";
         var list = rows.filter(function (r, i) {
           var p = parsed[i];
           if (fb && r[ix.b] !== fb) return false;
@@ -1255,6 +1257,14 @@
           if (fg && p.gen !== fg) return false;
           if (fq && p.cls !== fq) return false;
           if (ff && !r[ix.fw]) return false;
+          if (fd === "other") {
+            // non-MP-domicile: All-India seats are open everywhere; otherwise only the open/general
+            // (UR, non-female, non-TFW) seats at a PRIVATE college. Reservation, fee-waiver, female
+            // and government home-state seats are MP-domicile only.
+            var isAI = r[ix.dom] === "AI";
+            var openGen = p.soc === "UR" && p.gen !== "F" && !r[ix.fw];
+            if (!(isAI || (openGen && priv))) return false;
+          }
           return true;
         });
         var si = ix[sortCol];
@@ -1274,7 +1284,13 @@
             return "<td class='" + (c.cls || "") + "'>" + (c.fmt ? c.fmt(v, r) : (v == null ? "—" : v)) + "</td>";
           }).join("") + "</tr>";
         }).join("") + "</tbody>";
-        results.innerHTML = "<p class='result-summary'><strong>" + list.length + "</strong> record" +
+        var domBanner = (fd === "other")
+          ? "<div class='banner banner-info'><strong>Non-MP domicile:</strong> " + (priv
+              ? "this is a private / self-financing college, so its <strong>general (UR) seats</strong> are open to you &mdash; reservation (SC/ST/OBC/EWS), fee-waiver and the female pool are MP-domicile-only and are hidden."
+              : "this is a government / university institute, so only the <strong>5% All-India seats</strong> are open to you &mdash; MP home-state seats (most of the intake) are hidden.") +
+            " Verify with DTE.</div>"
+          : "";
+        results.innerHTML = domBanner + "<p class='result-summary'><strong>" + list.length + "</strong> record" +
           (list.length === 1 ? "" : "s") + " <span class='muted'>(click a column to sort)</span></p>" +
           "<div class='table-wrap'><table class='results hist-table'>" + thead + body + "</table></div>";
         Array.prototype.forEach.call(results.querySelectorAll("th.sortable"), function (th) {
