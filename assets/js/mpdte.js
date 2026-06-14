@@ -569,12 +569,15 @@
           return "<option value='" + esc(c) + "'>" + esc(c) + "</option>";
         }).join("");
       }
-      function rowHtml(item, bid) {
+      function rowHtml(item, bid, seq) {
         var pair = item.pair;
         var c = cols[pair[0]] || {}, t = c.type || "—";
         var govt = /government|university/i.test(t);
+        // # = sequential position in the CURRENT (filtered/sorted) view; when that differs from
+        // the college's overall within-branch demand rank, show the overall rank as a sub-label.
+        var numCell = seq + (seq !== item.rank ? "<span class='sub'>demand&nbsp;#" + item.rank + "</span>" : "");
         return "<tr>" +
-          "<td class='num'>" + item.rank + "</td>" +
+          "<td class='num'>" + numCell + "</td>" +
           "<td><span class='co-name'>" + esc(c.name || pair[0]) + "</span><span class='sub'>" + esc(c.city || "") + "</span></td>" +
           "<td><span class='pool " + (govt ? "" : "muted") + "'>" + esc(t) + "</span></td>" +
           "<td class='num'>~" + fmt(pair[1]) + "</td>" +
@@ -597,7 +600,7 @@
           return (cols[a.pair[0]].name || "").localeCompare(cols[b.pair[0]].name || "");
         });
         var matchTotal = lst.length, capped = matchTotal > CAP && !expanded;
-        var rows = (capped ? lst.slice(0, CAP) : lst).map(function (item) { return rowHtml(item, bid); }).join("");
+        var rows = (capped ? lst.slice(0, CAP) : lst).map(function (item, idx) { return rowHtml(item, bid, idx + 1); }).join("");
         var criteria = [];
         if (type) criteria.push("<strong>" + esc(type) + "</strong>");
         if (city) criteria.push("<strong>" + esc(city) + "</strong>");
