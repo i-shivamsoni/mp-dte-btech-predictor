@@ -558,9 +558,7 @@ def main():
     by_branch = collections.defaultdict(lambda: {"seats": 0, "closings": []})
     by_college = collections.defaultdict(lambda: {"seats": 0, "closings": []})
     by_city = collections.Counter()
-    trend = {}                                       # branch -> {year: % share of seats filled}
-    yr_branch_seats = collections.defaultdict(lambda: collections.defaultdict(int))
-    yr_total_seats = collections.defaultdict(int)
+    trend = {}                                       # branch -> {year: top-college frontier rank}
     for (cid, bid, yr), a in agg.items():
         if yr == latest:
             bb = by_branch[bid]; bb["seats"] += a["seats"]; bb["closings"] += a["closings"]
@@ -569,15 +567,27 @@ def main():
                 city = colleges.get(cid, {}).get("city")
                 if city:
                     by_city[city] += a["seats"]
-        yr_branch_seats[bid][yr] += a["seats"]
-        yr_total_seats[yr] += a["seats"]
-    # Demand TREND = each branch's SHARE of all B.Tech seats filled that year (%). Median closing
-    # saturated for broadly-offered branches (CSE looked LOW-demand), and raw seat COUNTS aren't
-    # comparable across years either (fewer rounds were published some years, so every branch dips
-    # in 2018/2020/2021). SHARE is supply- and completeness-normalized, so it shows genuine
-    # preference: CSE climbs ~35%->44% and the whole CS family (CSE+AIML+DS) goes 35%->63%; mech/civil fall.
-    for bid, yd in yr_branch_seats.items():
-        trend[bid] = {yr: round(100.0 * s / yr_total_seats[yr], 1) for yr, s in yd.items() if yr_total_seats.get(yr)}
+    # Demand TREND = each branch's COMPETITIVE FRONTIER per year = the closing rank at the single MOST
+    # competitive college offering it (lower rank = more in demand; the chart INVERTS the y-axis so the
+    # most in-demand sits at the TOP). Robust: per college take the MEDIAN UR/X/OP closing (so one stray
+    # parse-error row can't win), then the MIN across colleges. UR/X/OP open seats only; drop impossible
+    # ranks (<100). Median across ALL colleges would saturate (CSE is offered at ~147 colleges incl. low-
+    # demand privates) and hide that CSE's best seat is the toughest in the state -> CSE leads every year.
+    cb_urclos = collections.defaultdict(list)        # (cid,bid,yr) -> [UR/X/OP closings]
+    for r in cutoffs:
+        if r["_uni"] != "jee" or not r["_cid"]:
+            continue
+        if (r.get("_social") or "UR") != "UR" or (r.get("_class") or "") != "X" or (r.get("_gender") or "OP") != "OP" or r.get("fw") == "Y":
+            continue
+        cl = to_int(r.get("closing_rank"))
+        if cl is None or cl < 100:
+            continue
+        cb_urclos[(r["_cid"], r["_bid"], r["year"])].append(cl)
+    front = collections.defaultdict(lambda: collections.defaultdict(list))   # bid -> yr -> [per-college medians]
+    for (cid, bid, yr), cls in cb_urclos.items():
+        front[bid][yr].append(statistics.median(cls))
+    for bid, yd in front.items():
+        trend[bid] = {yr: int(min(meds)) for yr, meds in yd.items() if meds}
 
     # "Most in-demand" = most seats actually filled (popularity). Median closing is a poor
     # demand signal for branches because it's diluted by how many easy colleges offer them

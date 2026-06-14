@@ -41,9 +41,9 @@
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } },
-          tooltip: { callbacks: { label: function (ctx) { return ctx.dataset.label + ": " + ctx.parsed.y + "% of seats"; } } } },
+          tooltip: { callbacks: { label: function (ctx) { return ctx.dataset.label + ": top-college closing rank " + fmt(ctx.parsed.y); } } } },
         scales: {
-          y: { beginAtZero: true, title: { display: true, text: "Share of B.Tech seats filled (%)" }, grid: { color: COL.grid }, ticks: { callback: function (v) { return v + "%"; } } },
+          y: { reverse: true, title: { display: true, text: "Top-college closing rank — higher up = more in demand" }, grid: { color: COL.grid }, ticks: { callback: function (v) { return fmt(v); } } },
           x: { grid: { display: false } },
         },
       },
