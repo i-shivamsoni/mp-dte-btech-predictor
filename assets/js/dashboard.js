@@ -50,19 +50,6 @@
     });
   }
 
-  function colTable(d) {
-    var box = document.getElementById("table-colleges"); if (!box) return;
-    var rows = d.colleges.slice(0, 20);
-    var html = "<table class='results'><thead><tr><th>College</th><th>City</th><th>Type</th>" +
-      "<th class='num'>Median closing</th><th class='num'>Best</th><th class='num'>Seats</th></tr></thead><tbody>";
-    rows.forEach(function (r) {
-      html += "<tr><td>" + (r.name || r.c) + "</td><td>" + (r.city || "—") + "</td><td>" + (r.type || "—") +
-        "</td><td class='num'>" + fmt(r.median) + "</td><td class='num'>" + fmt(r.best) +
-        "</td><td class='num'>" + fmt(r.seats) + "</td></tr>";
-    });
-    box.innerHTML = html + "</tbody></table>";
-  }
-
   function render(d) {
     // 1. most in-demand branches: 15 lowest median closing (most competitive)
     // most in-demand = most seats actually filled (popularity); branches arrive seats-sorted.
@@ -71,10 +58,7 @@
       br.map(function (b) { return b.seats; }),
       "Seats filled (" + d.latest_year + ")", "Seats filled (latest year) — longer = more in demand");
 
-    // 2. colleges table
-    colTable(d);
-
-    // 3. trend lines for the top branches we have trend data for
+    // 2. trend lines for the top branches we have trend data for
     var years = []; for (var y = d.year_min; y <= d.year_max; y++) years.push(y);
     var series = Object.keys(d.trend).slice(0, 6).map(function (bid) {
       var label = (br.filter(function (b) { return b.b === bid; })[0] || {}).label || bid;
@@ -82,12 +66,12 @@
     });
     lineTrend("chart-trend", years, series);
 
-    // 4. seats by city (top 15)
+    // 3. seats by city (top 15)
     var cities = d.by_city.slice(0, 15);
     barH("chart-city", cities.map(function (c) { return c.city; }),
       cities.map(function (c) { return c.seats; }), "Seats allotted (" + d.latest_year + ")", "Seats allotted");
 
-    // 5. branch switching (revealed preference)
+    // 4. branch switching (revealed preference)
     var mv = (d.branch_movement || []).slice(0, 12);
     barH("chart-movement", mv.map(function (m) { return m.label; }),
       mv.map(function (m) { return m.into; }), "Students moved in (Internal Branch Change)", "Net moves into branch");
