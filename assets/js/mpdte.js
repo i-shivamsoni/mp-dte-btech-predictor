@@ -581,12 +581,12 @@
         // headline = the active metric; underneath, the other two of opening/mid/closing so the full
         // admitted-rank range is always visible regardless of which metric you rank by.
         var others = [2, 1, 3].filter(function (k) { return k !== mi; })
-          .map(function (k) { return RLAB[k] + "&nbsp;~" + fmt(pair[k]); }).join(" &middot; ");
+          .map(function (k) { return RLAB[k] + "&nbsp;" + fmt(pair[k]); }).join(" &middot; ");
         return "<tr>" +
           "<td class='num'>" + numCell + "</td>" +
           "<td><span class='co-name'>" + esc(c.name || pair[0]) + "</span><span class='sub'>" + esc(c.city || "") + "</span></td>" +
           "<td><span class='pool " + (govt ? "" : "muted") + "'>" + esc(t) + "</span></td>" +
-          "<td class='num'>~" + fmt(item.val) + "<span class='sub'>" + others + "</span></td>" +
+          "<td class='num'>" + fmt(item.val) + "<span class='sub'>" + others + "</span></td>" +
           "<td>" + (horizonBadge((avail[pair[0]] || {})[bid]) || "<span class='muted sub'>&mdash;</span>") + "</td></tr>";
       }
       var CAP = 50;
