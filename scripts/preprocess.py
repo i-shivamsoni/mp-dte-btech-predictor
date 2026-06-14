@@ -670,7 +670,13 @@ def main():
     # "when do seats run out" signal, not an exact seat count. Rule: bucket allotments into
     # [R1, Upgrade, R2, QE]; thr = max(3, 10% of the pair's total); horizon = the LAST bucket >= thr (QE
     # overrides if it clears thr; fallback = the single largest bucket).
-    AVAIL_YEAR = max(QE_YEAR_TO_MERIT)         # latest year with BOTH the JEE rounds AND the QE/% round
+    # Latest year that has BOTH the JEE rounds AND the QE/percentage round IN THE CUT-OFFS. The QE-ROUND
+    # cut-offs (TR/QR, e.g. BE_TR_2025.pdf) exist for more years than the QE MERIT LISTS (%->rank, which
+    # the percentage *predictor* needs and only has through 2024) — the horizon only needs the round
+    # cut-offs, so it can and should use 2025.
+    _yrs_jee = {r["year"] for r in cutoffs if r.get("_uni") == "jee"}
+    _yrs_qe = {r["year"] for r in cutoffs if r.get("_uni") == "qe"}
+    AVAIL_YEAR = max(_yrs_jee & _yrs_qe) if (_yrs_jee & _yrs_qe) else max(_yrs_jee or {2024})
     ROUND_BUCKET = {"FR": 0, "RF": 0, "FU": 1, "SR": 2, "QR": 3, "TR": 3}     # R1 / Upgrade / R2 / QE
     HORIZON_CODE = ["r1", "up", "r2", "qe"]
     avail_counts = collections.defaultdict(lambda: [0, 0, 0, 0])
