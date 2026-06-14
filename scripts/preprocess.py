@@ -610,10 +610,14 @@ def main():
     # actually chose that college+branch. We use OPENING (not closing): low-demand colleges fill
     # their general seats down to the very last candidate, so CLOSING ranks all saturate near the
     # max (~14 lakh in 2025) and can't tell colleges apart, whereas the opening rank discriminates
-    # across the full range and tracks real desirability. Score = median, across years (2021-25),
-    # of that year's Round-1 (RF/FR) UR/X/OP opening (fallbacks: any-round UR/X/OP, then any general
-    # X-class). PER BRANCH; pure data, no institute-type adjustment.
-    DEMAND_YEARS = set(range(2021, 2026))
+    # across the full range and tracks real desirability. Score = median, across the recent 3 years
+    # (2023-25), of that year's Round-1 (RF/FR) UR/X/OP opening (fallbacks: any-round UR/X/OP, then any
+    # general X-class). We use 2023-25 (not 2021-25): 2021/2022 are sparse (often a single Round-1 row
+    # per college/year) and float-noisy — a top student briefly allotted then upgraded gives a freak-low
+    # opening that, as the lone value, becomes that year's median and wrongly inflates the college's
+    # demand (e.g. Oriental Bhopal was scored 49k and ranked above UIT-RGPV though it really closes ~4x
+    # later). PER BRANCH; pure data, no institute-type adjustment.
+    DEMAND_YEARS = set(range(2023, 2026))   # recent 3 yrs only — 2021/2022 are sparse & float-noisy (1-row years skew the median)
     cb_year = collections.defaultdict(lambda: collections.defaultdict(
         lambda: {"rf": [], "ur": [], "x": []}))       # (cid,bid) -> year -> openings by specificity
     for r in cutoffs:

@@ -530,7 +530,7 @@
         var filterNote = criteria.length ? " Filtered to " + criteria.join(" in ") + ": <strong>" + matchTotal + "</strong> match." : "";
         out.innerHTML =
           "<p class='muted'>Colleges offering <strong>" + esc(blab[bid] || bid) + "</strong>, ordered by historical demand " +
-          "(most sought-after first). &ldquo;Typical demand&rdquo; is the open/general (UR) Round-1 <strong>opening</strong> rank over 2021&ndash;25 " +
+          "(most sought-after first). &ldquo;Typical demand&rdquo; is the open/general (UR) Round-1 <strong>opening</strong> rank over 2023&ndash;25 " +
           "&mdash; the best-ranked student who chose it; <strong>lower = more in demand</strong>. Same order the simulator fills your choice list in." +
           filterNote + (capped ? " <strong>Showing the top " + CAP + ".</strong>" : "") + "</p>" +
           (matchTotal ? "<div class='table-wrap'><table class='results'><thead><tr><th class='num'>#</th><th>College</th>" +
