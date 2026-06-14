@@ -453,7 +453,7 @@
       var closeSub = (bucket === "out") ? "out of reach" : (r.year + " " + esc(BUCKET_SHORT[bucket]) + up);
       var tr = el("tr", "row-" + r.band.toLowerCase());
       tr.innerHTML =
-        "<td class='num pref-no'>" + (r.choiceNo == null ? "&mdash;" : r.choiceNo) + "</td>" +
+        "<td class='num pref-no'>" + (bucket === "out" ? "&mdash;" : counter.v) + "</td>" +   // per-round position (best-first)
         "<td><span class='co-name'>" + esc(r.college) + hist + "</span><span class='sub'>" + esc(r.branch) + horizonBadge(r.avail) + "</span></td>" +
         "<td>" + poolTag(r) + domTag(r) + "</td>" +
         "<td>" + esc(r.city) + "<span class='sub'>" + esc(r.type) + "</span></td>" +
