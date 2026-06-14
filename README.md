@@ -42,7 +42,9 @@ raw lists are absent.
 
 ## Contributing
 
-Issues and pull requests are welcome — see the [contributing page](https://i-shivamsoni.github.io/mp-dte-btech-predictor/open-source/).
+Issues and pull requests are welcome — see **[CONTRIBUTING.md](CONTRIBUTING.md)** for the full
+guide (it covers humans and AI agents, the data pipeline, guardrails, and the verification suite),
+or the [contributing page](https://i-shivamsoni.github.io/mp-dte-btech-predictor/open-source/) for the short version.
 
 **Report a bug or data error — open an issue:**
 
@@ -66,3 +68,10 @@ Not affiliated with DTE M.P. Predictions are estimates from past cut-offs and ma
 future rounds; cut-offs drift each year. Always confirm seats, eligibility and fees on the
 [official DTE portal](https://dte.mponline.gov.in/). The qualifying-exam (12th-%) route currently
 covers 2019, 2022-23 and 2024-25; the remaining years are not yet available and will be added later.
+
+## License
+
+- **Code** — [MIT](LICENSE).
+- **Processed data** — [CC BY 4.0](LICENSE-DATA.md) (attribution required); the underlying cut-offs and seat matrix are official MP-DTE public records, and student merit lists are excluded.
+
+Both licenses apply to the project as a whole, **including all earlier commits in its history** — adding them in a later commit doesn't leave the earlier code/data unlicensed.
