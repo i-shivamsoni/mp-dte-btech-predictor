@@ -1,31 +1,46 @@
 ---
 page_id: opensource
-title: Open Source
-subtitle: The code and data behind this predictor — opening up soon.
+title: Open Source & Contributing
+subtitle: The code and data are public — and contributions are welcome.
 permalink: /open-source/
 ---
-<div class="banner banner-info">
-  <strong>Coming soon.</strong> This project isn&rsquo;t public on GitHub yet — check back shortly.
-</div>
-
 <div class="prose">
-  <h2>Soon: open source &amp; open for contributions</h2>
+  <h2>Open source</h2>
   <p>
-    This site and its underlying data will soon be <strong>open-sourced</strong> and opened up for
-    <strong>community contributions</strong>. The goal is simple: a transparent, verifiable tool for
-    Madhya Pradesh B.Tech aspirants, built in the open.
+    The full source &mdash; the static site, the deterministic predictor logic, and the
+    data-processing pipeline &mdash; is public on GitHub:
+    <a href="https://github.com/i-shivamsoni/mp-dte-btech-predictor" rel="noopener" target="_blank">github.com/i-shivamsoni/mp-dte-btech-predictor</a>.
+    It is built only from <strong>official public data</strong> (no machine learning, no hidden weights),
+    and the RTI application and student merit lists are deliberately kept out of the repository.
   </p>
-  <p>When it lands, you&rsquo;ll be able to:</p>
-  <ul>
-    <li><strong>Read every line</strong> — the static site, the deterministic predictor logic, and the
-      data-processing pipeline (no machine learning, no hidden weights).</li>
-    <li><strong>Inspect the data</strong> — the official MP-DTE cut-offs (2017&ndash;2025) and the
-      2026&ndash;27 seat matrix, exactly as the predictor uses them.</li>
-    <li><strong>Contribute</strong> — report issues, fix data-parsing edge cases, add missing years,
-      and improve the methodology via pull requests.</li>
-  </ul>
+
+  <h2>Found a problem? Open an issue</h2>
+  <p>Spotted a wrong cut-off, a missing college, or a bug? Please report it:</p>
+  <ol>
+    <li>Open the
+      <a href="https://github.com/i-shivamsoni/mp-dte-btech-predictor/issues" rel="noopener" target="_blank">Issues tab</a>
+      and click <strong>New issue</strong> (you&rsquo;ll need a free GitHub account).</li>
+    <li>Give it a clear title. In the description include the <strong>page / URL</strong>, what you
+      <strong>expected</strong> vs what you <strong>saw</strong>, and a <strong>screenshot</strong> if you can.</li>
+    <li>For a <strong>data error</strong>, name the <strong>college, branch, category and year</strong> so it can be
+      traced back to the official source.</li>
+  </ol>
+  <p>
+    <a class="btn-primary" style="display:inline-block;line-height:52px;text-decoration:none"
+       href="https://github.com/i-shivamsoni/mp-dte-btech-predictor/issues/new" rel="noopener" target="_blank">Open a new issue &rarr;</a>
+  </p>
+
+  <h2>Want to change something? Send a pull request</h2>
+  <ol>
+    <li><strong>Fork</strong> the repository and clone your fork.</li>
+    <li>Create a branch, make your change, and test locally
+      (<code>bundle exec jekyll serve</code> &mdash; see <em>Develop locally</em> in the README).</li>
+    <li>Push your branch and open a <strong>pull request</strong> against <code>main</code>, describing what changed and why.</li>
+  </ol>
   <p class="muted">
-    Until then, the predictions remain <strong>estimates, not guarantees</strong> — always verify on the
+    Please don&rsquo;t add the raw qualifying-exam merit lists (they contain student names and roll
+    numbers) &mdash; they are intentionally excluded. Predictions remain
+    <strong>estimates, not guarantees</strong>; always verify on the
     <a href="https://dte.mponline.gov.in/" rel="noopener" target="_blank">official DTE portal</a>.
   </p>
 </div>

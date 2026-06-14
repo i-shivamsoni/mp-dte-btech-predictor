@@ -40,6 +40,26 @@ qualifying-exam merit lists (which contain student names/roll numbers) are **not
 repository, so the percentage-route percentile lookup falls back to the committed asset when the
 raw lists are absent.
 
+## Contributing
+
+Issues and pull requests are welcome — see the [contributing page](https://i-shivamsoni.github.io/mp-dte-btech-predictor/open-source/).
+
+**Report a bug or data error — open an issue:**
+
+1. Go to the [Issues tab](https://github.com/i-shivamsoni/mp-dte-btech-predictor/issues) and click **New issue** (a free GitHub account is required).
+2. Give it a clear title, and in the description include the **page / URL**, what you **expected** vs what you **saw**, and a **screenshot** if you can.
+3. For a **data error**, name the **college, branch, category and year** so it can be traced back to the official source.
+
+Or [open a new issue directly](https://github.com/i-shivamsoni/mp-dte-btech-predictor/issues/new).
+
+**Submit a change — open a pull request:**
+
+1. **Fork** the repo and create a branch.
+2. Make your change and test locally (`bundle exec jekyll serve`; see *Develop locally* above).
+3. Push and open a **pull request** against `main`, describing what changed and why.
+
+> Please don't add the raw qualifying-exam merit lists (they contain student names / roll numbers) — they are intentionally excluded from this repository.
+
 ## Data & disclaimer
 
 Not affiliated with DTE M.P. Predictions are estimates from past cut-offs and may differ from
