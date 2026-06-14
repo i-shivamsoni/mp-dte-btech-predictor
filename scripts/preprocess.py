@@ -558,8 +558,8 @@ def main():
     by_branch = collections.defaultdict(lambda: {"seats": 0, "closings": []})
     by_college = collections.defaultdict(lambda: {"seats": 0, "closings": []})
     by_city = collections.Counter()
-    trend = collections.defaultdict(dict)            # branch -> {year: median closing}
-    yr_branch = collections.defaultdict(lambda: collections.defaultdict(list))
+    trend = {}                                       # branch -> {year: seats filled} (popularity over time)
+    yr_branch_seats = collections.defaultdict(lambda: collections.defaultdict(int))
     for (cid, bid, yr), a in agg.items():
         if yr == latest:
             bb = by_branch[bid]; bb["seats"] += a["seats"]; bb["closings"] += a["closings"]
@@ -568,11 +568,13 @@ def main():
                 city = colleges.get(cid, {}).get("city")
                 if city:
                     by_city[city] += a["seats"]
-        yr_branch[bid][yr] += a["closings"]
-    for bid, yd in yr_branch.items():
-        for yr, cls in yd.items():
-            if cls:
-                trend[bid][yr] = med(cls)
+        yr_branch_seats[bid][yr] += a["seats"]
+    # Demand TREND = seats filled per branch per year (popularity), NOT median closing. Median
+    # closing saturates for broadly-offered branches (CSE looked LOW-demand though it fills the
+    # most seats and has the single most competitive seat), and absolute closing ranks aren't
+    # comparable across years as the JEE candidate pool grows. Seats-filled is scale-free.
+    for bid, yd in yr_branch_seats.items():
+        trend[bid] = {yr: s for yr, s in yd.items()}
 
     # "Most in-demand" = most seats actually filled (popularity). Median closing is a poor
     # demand signal for branches because it's diluted by how many easy colleges offer them
