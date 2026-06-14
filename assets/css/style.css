@@ -230,6 +230,10 @@ body[data-page="accuracy"] main.container { max-width: 940px; }
 .strat-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
 .strat-desc { margin: 0 0 8px; }
 
+/* simulator: sort-the-seat-pools control (sits above the round tables) */
+.sim-sort { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 22px 0 10px; }
+.sim-sort select { min-width: 240px; padding: 9px 12px; }
+
 /* Branch-ranks "show all" toggle */
 .br-more-wrap { text-align: center; margin: 16px 0 4px; }
 .br-more {
