@@ -528,7 +528,7 @@
       var tr = el("tr", "row-" + r.band.toLowerCase());
       tr.innerHTML =
         "<td class='num pref-no'>" + (bucket === "out" ? "&mdash;" : counter.v) + "</td>" +   // per-round position (best-first)
-        "<td><span class='co-name'>" + coLink(r.cid, r.college) + hist + "</span><span class='sub'>" + esc(r.branch) + horizonBadge(r.avail) + "</span>" + coCta(r.cid) + "</td>" +
+        "<td><span class='co-name'>" + esc(r.college) + hist + "</span><span class='sub'>" + esc(r.branch) + horizonBadge(r.avail) + "</span>" + coCta(r.cid) + "</td>" +
         "<td>" + poolTag(r) + domTag(r) + "</td>" +
         "<td>" + esc(r.city) + "<span class='sub'>" + esc(r.type) + "</span></td>" +
         "<td class='num'>" + fmt(r.closing == null ? r.bestClosing : r.closing) + " <span class='sub'>" + closeSub + "</span></td>" +
@@ -596,7 +596,7 @@
           .map(function (k) { return RLAB[k] + "&nbsp;" + fmt(pair[k]); }).join(" &middot; ");
         return "<tr" + (seq === 1 ? " class='br-top'" : "") + ">" +
           "<td class='num'>" + numCell + "</td>" +
-          "<td><span class='co-name'>" + coLink(pair[0], c.name || pair[0]) + "</span><span class='sub'>" + esc(c.city || "") + "</span>" + coCta(pair[0]) + "</td>" +
+          "<td><span class='co-name'>" + esc(c.name || pair[0]) + "</span><span class='sub'>" + esc(c.city || "") + "</span>" + coCta(pair[0]) + "</td>" +
           "<td><span class='pool " + (govt ? "" : "muted") + "'>" + esc(t) + "</span></td>" +
           "<td class='num'><span class='demand-v'>" + fmt(item.val) + "</span><span class='sub'>" + others + "</span></td>" +
           "<td>" + (horizonBadge((avail[pair[0]] || {})[bid]) || "<span class='muted sub'>&mdash;</span>") + "</td></tr>";
@@ -929,7 +929,7 @@
       var tr = el("tr", "row-" + r.band.toLowerCase());
       tr.innerHTML =
         "<td class='num pref-no'>" + n + "</td>" +
-        "<td>" + coLink(r.cid, r.college) + hist + coCta(r.cid) + "</td>" +
+        "<td>" + esc(r.college) + hist + coCta(r.cid) + "</td>" +
         "<td>" + esc(r.city) + "</td>" +
         "<td>" + esc(r.branch) + pool + "</td>" +
         "<td>" + esc(r.type) + "</td>" +
