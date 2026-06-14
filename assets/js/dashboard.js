@@ -41,9 +41,9 @@
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } },
-          tooltip: { callbacks: { label: function (ctx) { return ctx.dataset.label + ": " + fmt(ctx.parsed.y); } } } },
+          tooltip: { callbacks: { label: function (ctx) { return ctx.dataset.label + ": " + ctx.parsed.y + "% of seats"; } } } },
         scales: {
-          y: { beginAtZero: true, title: { display: true, text: "Seats filled (higher = more in demand)" }, grid: { color: COL.grid }, ticks: { callback: function (v) { return fmt(v); } } },
+          y: { beginAtZero: true, title: { display: true, text: "Share of B.Tech seats filled (%)" }, grid: { color: COL.grid }, ticks: { callback: function (v) { return v + "%"; } } },
           x: { grid: { display: false } },
         },
       },
