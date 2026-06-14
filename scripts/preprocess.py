@@ -670,7 +670,7 @@ def main():
     # "when do seats run out" signal, not an exact seat count. Rule: bucket allotments into
     # [R1, Upgrade, R2, QE]; thr = max(3, 10% of the pair's total); horizon = the LAST bucket >= thr (QE
     # overrides if it clears thr; fallback = the single largest bucket).
-    AVAIL_YEAR = 2024
+    AVAIL_YEAR = max(QE_YEAR_TO_MERIT)         # latest year with BOTH the JEE rounds AND the QE/% round
     ROUND_BUCKET = {"FR": 0, "RF": 0, "FU": 1, "SR": 2, "QR": 3, "TR": 3}     # R1 / Upgrade / R2 / QE
     HORIZON_CODE = ["r1", "up", "r2", "qe"]
     avail_counts = collections.defaultdict(lambda: [0, 0, 0, 0])
@@ -700,6 +700,7 @@ def main():
         "branch_movement": movement,
         "branch_priority": branch_priority,      # branchId -> [[collegeId, demandClosing], ...] best-first
         "availability": availability,            # cid -> bid -> {h: horizon r1/up/r2/qe, n: [R1,Up,R2,QE]}
+        "availability_year": AVAIL_YEAR,         # the year the horizon is computed from (latest with a QE round)
     }
 
     # ---- 6. write assets ----

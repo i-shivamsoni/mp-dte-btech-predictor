@@ -282,6 +282,7 @@
   }
   // Seat-availability HORIZON — the last round a college+branch typically still allots seats.
   // Top colleges run dry in Round 1/Upgrade; low-demand ones last into Round 2 / the 12th-% round.
+  var AVAIL_YR = 2024;                                   // set from demand_stats.availability_year on load
   var AVAIL_LABEL = {
     r1: { t: "Round 1 only", d: "seats fill in Round 1 — you must grab it then" },
     up: { t: "gone after Upgrade", d: "seats fill by the First-Round Upgrade" },
@@ -291,8 +292,8 @@
   function horizonBadge(av) {
     if (!av || !av.h || !AVAIL_LABEL[av.h]) return "";
     var L = AVAIL_LABEL[av.h], n = av.n || [0, 0, 0, 0];
-    var tip = "Seats " + L.d + ". 2024 allotments — Round 1: " + n[0] + ", Upgrade: " + n[1] +
-      ", Round 2: " + n[2] + ", 12th-% round: " + n[3] + " (shows WHEN seats run out — allotment counts, not exact 2026 vacancies).";
+    var tip = "Seats " + L.d + ". " + AVAIL_YR + " allotments — Round 1: " + n[0] + ", Upgrade: " + n[1] +
+      ", Round 2: " + n[2] + ", 12th-% round: " + n[3] + " (shows WHEN seats run out — allotment counts, not exact vacancies).";
     return " <span class='avail-badge badge-" + av.h + "' title='" + esc(tip) + "'>" + esc(L.t) + "</span>";
   }
   var CHOICE_CAP = 50;
@@ -341,7 +342,7 @@
       "Each college shows when its seats typically run out: " +
       "<span class='avail-badge badge-r1'>Round 1 only</span> <span class='avail-badge badge-up'>gone after Upgrade</span> " +
       "<span class='avail-badge badge-r2'>lasts to Round 2</span> <span class='avail-badge badge-qe'>open in 12th-% round</span> " +
-      "&mdash; so a tougher college may need an earlier round. (From 2024 allotments.)"));
+      "&mdash; so a tougher college may need an earlier round. (From " + AVAIL_YR + " allotments.)"));
 
     if (reachable.length || unreachable.length) {
       var sug = el("div", "choice-suggest");
@@ -477,13 +478,15 @@
   /* ---- "Top colleges by branch" browsable priority view ---- */
   function initBranchRankings() {
     var sel = document.getElementById("br-branch"), typeSel = document.getElementById("br-type"),
-      citySel = document.getElementById("br-city"), out = document.getElementById("br-list");
+      citySel = document.getElementById("br-city"), availSel = document.getElementById("br-avail"),
+      out = document.getElementById("br-list");
     if (!sel || !out) return;
     loadAll(["colleges", "branches", "demand_stats"]).then(function (a) {
       var cols = {}; (a[0].colleges || []).forEach(function (c) { cols[c.id] = c; });
       var blab = {}; (a[1].branches || []).forEach(function (b) { blab[b.id] = b.label; });
       var bp = (a[2] && a[2].branch_priority) || {};
       var avail = (a[2] && a[2].availability) || {};
+      AVAIL_YR = (a[2] && a[2].availability_year) || AVAIL_YR;
       var types = (a[0].types || []).slice().sort();
       var cityMap = {};
       (a[0].colleges || []).forEach(function (c) { if (c.city) cityMap[c.city] = 1; });
@@ -517,10 +520,12 @@
       }
       var CAP = 50;
       function render(bid, expanded) {
-        var all = bp[bid] || [], type = typeSel ? typeSel.value : "", city = citySel ? citySel.value : "";
+        var all = bp[bid] || [], type = typeSel ? typeSel.value : "", city = citySel ? citySel.value : "",
+          avh = availSel ? availSel.value : "";
         var lst = all.filter(function (pair) {
           var c = cols[pair[0]] || {};
-          return c && !c.historical && (!type || c.type === type) && (!city || c.city === city);  // skip defunct colleges
+          return c && !c.historical && (!type || c.type === type) && (!city || c.city === city) &&
+            (!avh || ((avail[pair[0]] || {})[bid] || {}).h === avh);   // seats-last-to filter
         }).map(function (pair, i) { return { pair: pair, rank: i + 1 }; });
         var matchTotal = lst.length, capped = matchTotal > CAP && !expanded;
         var rows = (capped ? lst.slice(0, CAP) : lst).map(function (item) { return rowHtml(item, bid); }).join("");
@@ -536,18 +541,19 @@
           filterNote + (capped ? " <strong>Showing the top " + CAP + ".</strong>" : "") + "</p>" +
           (matchTotal ? "<div class='table-wrap'><table class='results'><thead><tr><th class='num'>#</th><th>College</th>" +
           "<th>Type</th><th class='num'>Typical demand<br><span class='sub'>admit-rank mid</span></th>" +
-          "<th>Seats last to<br><span class='sub'>2024</span></th></tr></thead><tbody>" +
+          "<th>Seats last to<br><span class='sub'>" + AVAIL_YR + "</span></th></tr></thead><tbody>" +
           rows + "</tbody></table></div>" : "<p class='empty'>No colleges match this branch and filters.</p>") +
           (matchTotal > CAP ? "<div class='br-more-wrap'><button type='button' class='br-more'>" +
             (expanded ? "Show top " + CAP + " only &uarr;" : "Show all " + matchTotal + " colleges &darr;") + "</button></div>" : "");
         var mb = out.querySelector(".br-more");
         if (mb) mb.addEventListener("click", function () { render(bid, !expanded); });
       }
-      function syncUrl() { setParams({ b: sel.value, type: typeSel && typeSel.value, city: citySel && citySel.value }); }
+      function syncUrl() { setParams({ b: sel.value, type: typeSel && typeSel.value, city: citySel && citySel.value, avail: availSel && availSel.value }); }
       var params = qsParams(), want = params.b;
       if (want && bids.indexOf(want) > -1) sel.value = want; else if (bids.indexOf("cse") > -1) sel.value = "cse";
       if (typeSel && params.type && types.indexOf(params.type) > -1) typeSel.value = params.type;
       if (citySel && params.city && cities.indexOf(params.city) > -1) citySel.value = params.city;
+      if (availSel && params.avail && AVAIL_LABEL[params.avail]) availSel.value = params.avail;
       render(sel.value);
       sel.addEventListener("change", function () {
         render(sel.value);
@@ -555,6 +561,7 @@
       });
       if (typeSel) typeSel.addEventListener("change", function () { render(sel.value); syncUrl(); });
       if (citySel) citySel.addEventListener("change", function () { render(sel.value); syncUrl(); });
+      if (availSel) availSel.addEventListener("change", function () { render(sel.value); syncUrl(); });
     }).catch(function (e) { showError(out, e); });
   }
 
@@ -566,6 +573,7 @@
       var ctx = buildContext(a[0], a[1], a[2], a[3], a[4]);
       ctx.pref = prefFromBranchPriority(a[6] && a[6].branch_priority);   // (college|branch) -> within-branch demand rank
       ctx.avail = (a[6] && a[6].availability) || {};                     // (college -> branch -> availability horizon)
+      AVAIL_YR = (a[6] && a[6].availability_year) || AVAIL_YR;
       var pred = a[5]; pred._roundMap = JEE_ROUND_MAP;
       var ms, curStrat = qsParams().strat || "balanced";
       function setStrat(s) { curStrat = s; var u = new URLSearchParams(location.search); u.set("strat", s); history.replaceState(null, "", location.pathname + "?" + u); }
