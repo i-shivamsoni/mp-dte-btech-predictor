@@ -77,62 +77,67 @@ def merit_dynamic(base, year):
     if m: return f"{m.group(1)}__merit-list__{m.group(2)}"
     return None
 
-plan, targets, flags = [], collections.defaultdict(list), []
-
-def consider(path):
-    d, fn = os.path.split(path)
-    base, ext = os.path.splitext(fn)
-    if ext.lower() not in (".pdf", ".json"): return
-    rel = os.path.relpath(path, ROOT)
-    new = None
-    # per-year cut-off round files
-    m = re.search(r"DTE_CutOff_BTech/(20\d\d)$", d)
-    if m and base != "manifest":
-        rn = cutoff_round(base)
-        new = f"{m.group(1)}__cutoff__{rn}" if rn else None
-        if not rn: flags.append(f"UNMAPPED cutoff: {rel}")
-    # CommonView is the rule book at repo root, but a QE merit list under MeritLists/<year>/
-    if new is None and base == "CommonView":
-        ym = re.search(r"MeritLists/(\d{4})", d)
-        new = f"{ym.group(1)}__merit-list__qualifying-exam" if ym else "2026-27__admission-rulebook"
-    if new is None and base in MERIT: new = MERIT[base]
-    if new is None: new = merit_dynamic(base, None)
-    if new is None and base == "manifest":
-        new = ("cutoffs__manifest" if "DTE_CutOff_BTech" in d else "merit-lists__manifest")
-    if new is None:
-        flags.append(f"UNMAPPED: {rel}"); return
-    newpath = os.path.join(d, new + ext.lower())
-    if os.path.abspath(newpath) == os.path.abspath(path): return
-    targets[newpath].append(path)
-    plan.append((path, newpath))
-
-for dirpath, _, files in os.walk(ROOT):
-    if "/.git" in dirpath: continue
-    if not re.search(r"DTE_CutOff_BTech|DTE_Intake_BTech|DTE_MeritList_BTech|MeritLists", dirpath) and dirpath != ROOT:
-        continue
-    for f in files:
-        if dirpath == ROOT and f not in ("CommonView.pdf", "2022_Common-merit-qualifying-exam-sample.pdf", "dte-mp-btech-merit-list-2025.pdf"):
+def main():
+    plan, targets, flags = [], collections.defaultdict(list), []
+    
+    def consider(path):
+        d, fn = os.path.split(path)
+        base, ext = os.path.splitext(fn)
+        if ext.lower() not in (".pdf", ".json"): return
+        rel = os.path.relpath(path, ROOT)
+        new = None
+        # per-year cut-off round files
+        m = re.search(r"DTE_CutOff_BTech/(20\d\d)$", d)
+        if m and base != "manifest":
+            rn = cutoff_round(base)
+            new = f"{m.group(1)}__cutoff__{rn}" if rn else None
+            if not rn: flags.append(f"UNMAPPED cutoff: {rel}")
+        # CommonView is the rule book at repo root, but a QE merit list under MeritLists/<year>/
+        if new is None and base == "CommonView":
+            ym = re.search(r"MeritLists/(\d{4})", d)
+            new = f"{ym.group(1)}__merit-list__qualifying-exam" if ym else "2026-27__admission-rulebook"
+        if new is None and base in MERIT: new = MERIT[base]
+        if new is None: new = merit_dynamic(base, None)
+        if new is None and base == "manifest":
+            new = ("cutoffs__manifest" if "DTE_CutOff_BTech" in d else "merit-lists__manifest")
+        if new is None:
+            flags.append(f"UNMAPPED: {rel}"); return
+        newpath = os.path.join(d, new + ext.lower())
+        if os.path.abspath(newpath) == os.path.abspath(path): return
+        targets[newpath].append(path)
+        plan.append((path, newpath))
+    
+    for dirpath, _, files in os.walk(ROOT):
+        if "/.git" in dirpath: continue
+        if not re.search(r"DTE_CutOff_BTech|DTE_Intake_BTech|DTE_MeritList_BTech|MeritLists", dirpath) and dirpath != ROOT:
             continue
-        consider(os.path.join(dirpath, f))
+        for f in files:
+            if dirpath == ROOT and f not in ("CommonView.pdf", "2022_Common-merit-qualifying-exam-sample.pdf", "dte-mp-btech-merit-list-2025.pdf"):
+                continue
+            consider(os.path.join(dirpath, f))
+    
+    collisions = {t: srcs for t, srcs in targets.items() if len(srcs) > 1}
+    print(f"{'APPLYING' if APPLY else 'DRY-RUN'}: {len(plan)} renames, {len(collisions)} collisions, {len(flags)} flags\n")
+    for src, dst in sorted(plan):
+        tag = "TRACKED" if os.path.relpath(src, ROOT) in TRACKED else "       "
+        print(f"  [{tag}] {os.path.relpath(src,ROOT)}\n          -> {os.path.relpath(dst,ROOT)}")
+    if collisions:
+        print("\n!! COLLISIONS:")
+        for t, s in collisions.items(): print("  ", os.path.relpath(t,ROOT), "<-", [os.path.relpath(x,ROOT) for x in s])
+    if flags:
+        print("\n!! FLAGS:"); [print("  ", f) for f in flags]
+    
+    if APPLY and not collisions and not flags:
+        for src, dst in plan:
+            rel = os.path.relpath(src, ROOT)
+            if rel in TRACKED:
+                subprocess.run(["git", "mv", rel, os.path.relpath(dst, ROOT)], cwd=ROOT, check=True)
+            else:
+                os.rename(src, dst)
+        print(f"\nDONE: {len(plan)} files renamed.")
+    elif APPLY:
+        print("\nABORTED: resolve collisions/flags first.")
+    
 
-collisions = {t: srcs for t, srcs in targets.items() if len(srcs) > 1}
-print(f"{'APPLYING' if APPLY else 'DRY-RUN'}: {len(plan)} renames, {len(collisions)} collisions, {len(flags)} flags\n")
-for src, dst in sorted(plan):
-    tag = "TRACKED" if os.path.relpath(src, ROOT) in TRACKED else "       "
-    print(f"  [{tag}] {os.path.relpath(src,ROOT)}\n          -> {os.path.relpath(dst,ROOT)}")
-if collisions:
-    print("\n!! COLLISIONS:")
-    for t, s in collisions.items(): print("  ", os.path.relpath(t,ROOT), "<-", [os.path.relpath(x,ROOT) for x in s])
-if flags:
-    print("\n!! FLAGS:"); [print("  ", f) for f in flags]
-
-if APPLY and not collisions and not flags:
-    for src, dst in plan:
-        rel = os.path.relpath(src, ROOT)
-        if rel in TRACKED:
-            subprocess.run(["git", "mv", rel, os.path.relpath(dst, ROOT)], cwd=ROOT, check=True)
-        else:
-            os.rename(src, dst)
-    print(f"\nDONE: {len(plan)} files renamed.")
-elif APPLY:
-    print("\nABORTED: resolve collisions/flags first.")
+if __name__ == '__main__':
+    main()
