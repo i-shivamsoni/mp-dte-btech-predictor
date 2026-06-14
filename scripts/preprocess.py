@@ -8,9 +8,9 @@ deterministic comparison of a student's rank against published historical closin
 ranks. This script just shapes + indexes the data.
 
 Inputs (committed, unchanged):
-  DTE_CutOff_BTech/all_btech_cutoffs.json    65,600 cut-off rows (2017-2025)
-  DTE_Intake_BTech/intake_BE_2026-27.json    674 seat-matrix rows (111 colleges)
-  DTE_MeritList_BTech/BTech_MeritList_QE_*   3 qualifying-exam %-> rank merit lists
+  DTE_CutOff_BTech/2017-2025__all-cutoffs.json      65,600 cut-off rows (2017-2025)
+  DTE_Intake_BTech/2026-27__seat-matrix.json        674 seat-matrix rows (111 colleges)
+  DTE_MeritList_BTech/<year>__merit-list__qualifying-exam.json   3 qualifying-exam %-> rank merit lists
 
 Outputs (assets/data/*.json, minified):
   branches.json  colleges.json  intake.json  cities.json  categories.json
@@ -21,8 +21,8 @@ Run from anywhere: anchors to the project root (this file's parent's parent).
 import json, os, re, sys, collections, statistics
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CUTOFF = os.path.join(ROOT, "DTE_CutOff_BTech", "all_btech_cutoffs.json")
-INTAKE = os.path.join(ROOT, "DTE_Intake_BTech", "intake_BE_2026-27.json")
+CUTOFF = os.path.join(ROOT, "DTE_CutOff_BTech", "2017-2025__all-cutoffs.json")
+INTAKE = os.path.join(ROOT, "DTE_Intake_BTech", "2026-27__seat-matrix.json")
 MERITDIR = os.path.join(ROOT, "DTE_MeritList_BTech")
 OUTDIR = os.path.join(ROOT, "assets", "data")
 
@@ -244,7 +244,11 @@ def to_int(v):
 def round_code(source_pdf, round_title):
     """Derive a canonical round code from the PDF name, else the round title."""
     s = (source_pdf or "").upper()
-    for pat, code in [("INTSL", "SL"), ("_SL", "SL"), ("_TR", "TR"), ("_QR", "QR"),
+    for pat, code in [  # spelled-out names (new file convention) first, then the legacy code substrings
+                      ("INTERNAL-BRANCH-CHANGE", "SL"), ("SECOND-UPGRADE", "FU"),
+                      ("FIRST-ROUND-UPGRADE", "FU"), ("QUALIFYING-EXAM-ROUND", "TR"),
+                      ("SECOND-ROUND", "SR"), ("SPECIAL-ROUND", "SP"), ("FIRST-ROUND", "RF"),
+                      ("INTSL", "SL"), ("_SL", "SL"), ("_TR", "TR"), ("_QR", "QR"),
                       ("_FU", "FU"), ("_SR", "SR"), ("_RF", "RF"), ("_FR", "FR"),
                       ("_SP", "SP"), ("SPECIAL", "SP")]:
         if pat in s:
@@ -513,7 +517,7 @@ def main():
     # % -> merit-rank lookup, one breakpoint per 0.1% bucket (min rank in bucket)
     percentile = {}
     for cyear, mtag in QE_YEAR_TO_MERIT.items():
-        path = os.path.join(MERITDIR, f"BTech_MeritList_QE_{mtag}.json")
+        path = os.path.join(MERITDIR, f"{mtag}__merit-list__qualifying-exam.json")
         if not os.path.exists(path):
             continue
         ml = json.load(open(path, encoding="utf-8"))
