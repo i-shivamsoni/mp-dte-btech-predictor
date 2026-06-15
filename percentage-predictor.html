@@ -10,17 +10,20 @@ permalink: /percentage-predictor/
   The remaining years are not yet available and will be added later. Your estimate uses
   the closest available year.
 </div>
-<div class="banner banner-info" style="margin-top:.5rem">
-  <strong>What this round can get you:</strong> the Qualifying-Exam (percentage) round runs <em>after</em> the
-  JEE rounds, on whatever seats are left. The most in-demand colleges (SGSITS, IET-DAVV, JEC&hellip;) fill up
-  in Round&nbsp;1 / Upgrade, so they normally have <strong>no seats here</strong> — this route mainly opens up
-  the mid- and lower-demand colleges that still had vacancies. (See &ldquo;Seats last to&rdquo; on
-  <a href="{{ '/branch-rankings/' | relative_url }}">Branch ranks</a> for which colleges reach this round.)
-  Anything still vacant after this round is filled in <strong>College Level Counselling (CLC)</strong>
-  &mdash; institute-level admission taken directly at the college (not covered by this tool).
-</div>
+<details class="how-works">
+  <summary>What this round can get you</summary>
+  <p class="hint muted">
+    The Qualifying-Exam (percentage) round runs <em>after</em> the JEE rounds, on whatever seats are left.
+    The most in-demand colleges (SGSITS, IET-DAVV, JEC&hellip;) fill up in Round&nbsp;1 / Upgrade, so they normally
+    have <strong>no seats here</strong> &mdash; this route mainly opens up the mid- and lower-demand colleges that still
+    had vacancies. (See &ldquo;Seats last to&rdquo; on
+    <a href="{{ '/branch-rankings/' | relative_url }}">Branch ranks</a> for which colleges reach this round.)
+    Anything still vacant after this round is filled in <strong>College Level Counselling (CLC)</strong>
+    &mdash; institute-level admission taken directly at the college (not covered by this tool).
+  </p>
+</details>
 
-<form id="predict-form" class="predict-form" autocomplete="off">
+<form id="predict-form" class="predict-form" autocomplete="off" novalidate>
   <div class="primary-input">
     <div class="f-group">
       <label for="in-pct">Your Class-XII percentage</label>
@@ -51,17 +54,21 @@ permalink: /percentage-predictor/
         <option value="other">Other state</option>
       </select>
     </div>
+  </div>
+  <div class="btn-row">
     <button type="submit" class="btn-primary">Show my colleges</button>
   </div>
+  <p id="form-msg" class="form-msg" aria-live="polite"></p>
   <p class="hint muted">
     Note: the Qualifying Exam Based Round uses general + EWS + fee-waiver pools only
     (no OBC/SC/ST reservation in this round).
   </p>
-  <details class="filters-wrap" open>
-    <summary>Filters</summary>
+  <details class="filters-wrap">
+    <summary>More filters</summary>
     <div id="filters" class="filters"></div>
   </details>
 </form>
 
-{% include caveat-banner.html %}
 <div id="results" class="results-area" aria-live="polite"></div>
+
+{% include caveat-banner.html %}

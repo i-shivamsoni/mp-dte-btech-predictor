@@ -4,12 +4,13 @@ title: Probable Counselling Simulator
 subtitle: Which college, branch & seat-pool you can probably get — and in which counselling round.
 permalink: /predictor/
 ---
-<form id="sim-form" class="predict-form" autocomplete="off">
+<form id="sim-form" class="predict-form" autocomplete="off" novalidate>
   <div class="primary-input">
     <div class="f-group">
       <label for="in-rank">Your JEE Main rank (Common Rank / CRL)</label>
       <input type="number" id="in-rank" min="1" step="1" inputmode="numeric" placeholder="e.g. 50000" required>
     </div>
+    <div id="branch-pick"></div>
     <div class="f-group">
       <label for="in-cat">Category</label>
       <select id="in-cat">
@@ -36,7 +37,6 @@ permalink: /predictor/
         <option value="NCC">NCC</option>
       </select>
     </div>
-    <button type="submit" class="btn-primary">Simulate my counselling</button>
   </div>
 
   <div class="f-group f-group-check sim-tfw">
@@ -47,6 +47,21 @@ permalink: /predictor/
     </label>
   </div>
 
+  <div class="btn-row">
+    <button type="submit" class="btn-primary">Simulate my counselling</button>
+  </div>
+  <p id="form-msg" class="form-msg" aria-live="polite"></p>
+
+  <details class="filters-wrap">
+    <summary>More filters &mdash; city, institute type, specific college</summary>
+    <div id="filters" class="filters filters-multi"></div>
+  </details>
+</form>
+
+<div id="results" class="results-area" aria-live="polite"></div>
+
+<details class="how-works">
+  <summary>How this ranked list works</summary>
   <p class="hint muted">
     This builds the <strong>ranked choice list you should fill</strong> on the DTE portal: every seat-pool you&rsquo;re
     <strong>individually eligible for</strong>, ordered by <strong>historical demand</strong> (most sought-after colleges
@@ -55,16 +70,6 @@ permalink: /predictor/
     basket you all receive, so listing a tougher college higher never costs you a safer one below it. Domicile &amp; gender
     eligibility: non-MP candidates can&rsquo;t take MP home-state seats; female candidates also get the (easier) female pools.
   </p>
-
-  <details class="filters-wrap" open>
-    <summary>Choose your branch(es) &mdash; <strong>required</strong> &mdash; and optional city / type / college</summary>
-    <p class="hint muted" style="margin:.4rem 0 0">
-      Pick the <strong>branch(es)</strong> you want (e.g. Computer Science). Results are compared <em>within</em> a branch,
-      so a branch is required &mdash; otherwise an Electrical seat could appear where you expected CSE.
-    </p>
-    <div id="filters" class="filters filters-multi"></div>
-  </details>
-</form>
+</details>
 
 {% include caveat-banner.html %}
-<div id="results" class="results-area" aria-live="polite"></div>

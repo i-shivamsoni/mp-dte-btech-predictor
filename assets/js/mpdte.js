@@ -5,6 +5,7 @@
   "use strict";
   var BASE = window.BASEURL || "";
   var cache = {};
+  var CSE_FAMILY = ["cse", "it", "cs-it", "cse-ai", "cse-aiml", "cse-ds", "cse-cyber", "cse-iot", "cse-bc", "cse-bs", "cse-design", "cse-ai-ds", "cse-iot-cyber", "it-ai-robotics", "comp-sci", "cs-tech", "cyber-security", "ai", "ai-ds", "aiml", "data-science", "math-comp"];
 
   /* ---------- data loading ---------- */
   function load(name) {
@@ -39,6 +40,16 @@
     var u = new URLSearchParams();
     Object.keys(obj).forEach(function (k) { if (obj[k] !== "" && obj[k] != null) u.set(k, obj[k]); });
     history.replaceState(null, "", location.pathname + (u.toString() ? "?" + u : ""));
+  }
+  function cseFamilyPresent(ctx) {
+    var ids = {};
+    (ctx.branches || []).forEach(function (b) { ids[b.id] = true; });
+    return CSE_FAMILY.filter(function (id) { return ids[id]; });
+  }
+  function setFormMsg(node, msg, isError) {
+    if (!node) return;
+    node.innerHTML = msg || "";
+    node.classList.toggle("is-error", !!isError);
   }
 
   /* ---------- prediction engine ---------- */
@@ -155,18 +166,20 @@
         var c = p.rounds[b]; if (!c) return;
         c.cl = median(c.cls); c.op = c.ops.length ? Math.min.apply(null, c.ops) : c.cl;
       });
-      var asg = assignRound(p.rounds, opts.rank), best = null;
+      var asg = assignRound(p.rounds, opts.rank), best = null, bestOpening = null;
       SECURING_ORDER.forEach(function (b) { var c = p.rounds[b]; if (c && (best == null || c.cl < best)) best = c.cl; });
+      SECURING_ORDER.forEach(function (b) { var c = p.rounds[b]; if (c && c.cl === best) bestOpening = c.op; });
       var cl = clears[k] || { tot: 0, ok: 0 }, col = ctx.colleges[p.cid] || {};
       out.push({
         cid: p.cid, bid: p.bid, college: col.name || ("College " + p.cid), city: col.city || "—", type: col.type || "—",
         branch: ctx.branchLabel[p.bid] || p.bid, social: p.cat, gender: p.gen, domicile: p.dom, year: basis,
         bucket: asg.bucket || "out", outOfReach: asg.outOfReach, closing: asg.closing, opening: asg.opening,
         viaUpgrade: asg.viaUpgrade, seats: (ctx.intake[p.cid] || {})[p.bid] || null,
-        bestClosing: best != null ? best : Infinity, tfw: p.cat === "FW",
+        bestClosing: best != null ? best : Infinity, bestOpening: bestOpening, tfw: p.cat === "FW",
         cls: p.cls, quota: (p.cls && p.cls !== "X") ? p.cls : "",
         avail: (ctx.avail && ctx.avail[p.cid]) ? (ctx.avail[p.cid][p.bid] || null) : null,   // seat-availability horizon
-        prefRank: (ctx.pref && ctx.pref[p.cid + "|" + p.bid]) || 1e9,   // historical desirability (1 = most sought-after)
+        prefRank: (ctx.pref && ctx.pref[p.cid + "|" + p.bid]) || 1e9,   // within-branch desirability rank
+        prefScore: (ctx.prefScore && ctx.prefScore[p.cid + "|" + p.bid]) || 1e12,   // comparable demand score across selected branches
         pool: (p.cls && p.cls !== "X") ? "special"
             : (p.cat === "FW") ? "tfw"
             : (p.gen === "F" ? "female" : ((p.cat === opts.social && opts.social !== "UR") ? "reserved" : "general")),
@@ -184,7 +197,8 @@
     // regardless of how reachable it is). prefRank is per (college,branch), so a college's pools
     // (FW / general / female) share a rank and naturally cluster, FW first via poolRank.
     arr.sort(function (a, b) {
-      if (a.prefRank !== b.prefRank) return a.prefRank - b.prefRank;     // most sought-after first
+      if (a.prefScore !== b.prefScore) return a.prefScore - b.prefScore; // most sought-after first, comparable across branches
+      if (a.prefRank !== b.prefRank) return a.prefRank - b.prefRank;
       if (a.bestClosing !== b.bestClosing) return a.bestClosing - b.bestClosing;
       if (a.poolRank !== b.poolRank) return a.poolRank - b.poolRank;     // FW above the general seat
       if (a.college !== b.college) return a.college < b.college ? -1 : 1;
@@ -197,6 +211,7 @@
 
   /* ---- accessible dependency-free multi-select (collapsible checkbox panel) ---- */
   function MultiSelect(container, opts) {
+    opts = opts || {};
     var selected = Object.create(null), idp = "ms-" + opts.key;
     var root = el("div", "f-group ms");
     var lbl = el("span", "ms-label", esc(opts.label)); lbl.id = idp + "-lbl";
@@ -218,7 +233,21 @@
       });
     }
     var actions = el("div", "ms-actions"), allBtn = el("button", "ms-all", "All"), clrBtn = el("button", "ms-clear", "Clear");
-    allBtn.type = "button"; clrBtn.type = "button"; actions.appendChild(allBtn); actions.appendChild(clrBtn); pop.appendChild(actions);
+    allBtn.type = "button"; clrBtn.type = "button"; actions.appendChild(allBtn); actions.appendChild(clrBtn);
+    var optionLookup = {};
+    opts.options.forEach(function (o) { optionLookup[o.value] = true; });
+    (opts.presets || []).forEach(function (preset) {
+      var vals = (preset.values || []).filter(function (v) { return optionLookup[v]; });
+      if (!vals.length) return;
+      var presetBtn = el("button", "ms-preset", esc(preset.label));
+      presetBtn.type = "button";
+      presetBtn.addEventListener("click", function () {
+        vals.forEach(function (v) { selected[v] = true; });
+        syncBoxes(); refresh(); opts.onChange && opts.onChange();
+      });
+      actions.appendChild(presetBtn);
+    });
+    pop.appendChild(actions);
     opts.options.forEach(function (o) {
       var li = el("li"), l = el("label"), cb = el("input"); cb.type = "checkbox"; cb.value = o.value;
       cb.addEventListener("change", function () { if (cb.checked) selected[o.value] = true; else delete selected[o.value]; refresh(); opts.onChange && opts.onChange(); });
@@ -227,37 +256,124 @@
     pop.appendChild(list);
     function refresh() {
       var keys = Object.keys(selected);
-      if (!keys.length) { sum.textContent = "All " + opts.summaryNoun; root.classList.remove("ms-active"); return; }
+      if (!keys.length) { sum.textContent = opts.emptySummary || ("All " + opts.summaryNoun); root.classList.remove("ms-active"); return; }
       root.classList.add("ms-active");
       if (keys.length <= 2) sum.textContent = keys.map(function (v) { var o = opts.options.filter(function (x) { return x.value === v; })[0]; return o ? o.text : v; }).join(", ");
       else sum.textContent = keys.length + " " + opts.summaryNoun + " selected";
     }
     function open() { pop.hidden = false; btn.setAttribute("aria-expanded", "true"); root.classList.add("ms-open"); }
     function close() { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); root.classList.remove("ms-open"); }
+    function syncBoxes() { Array.prototype.forEach.call(list.querySelectorAll("input"), function (cb) { cb.checked = !!selected[cb.value]; }); }
     btn.addEventListener("click", function () { pop.hidden ? open() : close(); });
+    btn.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !pop.hidden) { e.preventDefault(); close(); }
+    });
     function liOf(node) { while (node && node.tagName !== "LI") node = node.parentNode; return node || {}; }
     allBtn.addEventListener("click", function () { Array.prototype.forEach.call(list.querySelectorAll("input"), function (cb) { if (liOf(cb).style.display !== "none") { cb.checked = true; selected[cb.value] = true; } }); refresh(); opts.onChange && opts.onChange(); });
-    clrBtn.addEventListener("click", function () { Array.prototype.forEach.call(list.querySelectorAll("input"), function (cb) { cb.checked = false; }); selected = Object.create(null); refresh(); opts.onChange && opts.onChange(); });
+    clrBtn.addEventListener("click", function () { selected = Object.create(null); syncBoxes(); refresh(); opts.onChange && opts.onChange(); });
     document.addEventListener("click", function (e) { if (!root.contains(e.target)) close(); });
     pop.addEventListener("keydown", function (e) { if (e.key === "Escape") { close(); btn.focus(); } });
     root.appendChild(lbl); root.appendChild(btn); root.appendChild(pop); container.appendChild(root); refresh();
     return {
       values: function () { return new Set(Object.keys(selected)); },
-      set: function (a) { selected = Object.create(null); (a || []).forEach(function (v) { selected[v] = true; }); Array.prototype.forEach.call(list.querySelectorAll("input"), function (cb) { cb.checked = !!selected[cb.value]; }); refresh(); },
+      set: function (a) { selected = Object.create(null); (a || []).forEach(function (v) { if (optionLookup[v]) selected[v] = true; }); syncBoxes(); refresh(); },
+      open: open,
+      focus: function () { btn.focus(); },
     };
   }
-  function buildMultiFilters(ctx, container, onChange) {
-    container.innerHTML = "";
+  function buildMultiFilters(ctx, branchEl, filtersEl, onChange) {
+    if (!branchEl) branchEl = filtersEl;
+    if (branchEl) branchEl.innerHTML = "";
+    if (filtersEl && filtersEl !== branchEl) filtersEl.innerHTML = "";
     var ms = {};
     // Branch is REQUIRED and listed first — results are compared within a branch, so mixing
     // branches (e.g. an Electrical seat surfacing when you meant CSE) would mislead.
-    ms.branch = MultiSelect(container, { key: "branch", label: "Branch(es) — required", summaryNoun: "branches", onChange: onChange, options: ctx.branches.map(function (b) { return { value: b.id, text: b.label }; }) });
-    ms.city = MultiSelect(container, { key: "city", label: "Cities", summaryNoun: "cities", onChange: onChange, options: ctx.cities.map(function (c) { return { value: c, text: c }; }) });
-    ms.type = MultiSelect(container, { key: "type", label: "Institute types", summaryNoun: "types", onChange: onChange, options: (ctx.types || []).map(function (t) { return { value: t, text: t }; }) });
+    ms.branch = MultiSelect(branchEl, { key: "branch", label: "Branch(es) — required", summaryNoun: "branches", emptySummary: "Choose branch", onChange: onChange,
+      presets: [{ label: "+ CSE family", values: cseFamilyPresent(ctx) }],
+      options: ctx.branches.map(function (b) { return { value: b.id, text: b.label }; }) });
+    ms.city = MultiSelect(filtersEl, { key: "city", label: "Cities", summaryNoun: "cities", onChange: onChange, options: ctx.cities.map(function (c) { return { value: c, text: c }; }) });
+    ms.type = MultiSelect(filtersEl, { key: "type", label: "Institute types", summaryNoun: "types", onChange: onChange, options: (ctx.types || []).map(function (t) { return { value: t, text: t }; }) });
     var colOpts = Object.keys(ctx.colleges).map(function (id) { return ctx.colleges[id]; }).filter(function (c) { return c && !c.historical; })
       .sort(function (a, b) { return (a.name || "").localeCompare(b.name || ""); }).map(function (c) { return { value: c.id, text: c.name + " — " + (c.city || "") }; });
-    ms.college = MultiSelect(container, { key: "college", label: "Specific colleges (optional)", summaryNoun: "colleges", onChange: onChange, options: colOpts });
+    ms.college = MultiSelect(filtersEl, { key: "college", label: "Specific colleges (optional)", summaryNoun: "colleges", onChange: onChange, options: colOpts });
     return ms;
+  }
+
+  function showModal(cfg) {
+    var previous = document.activeElement;
+    var overlay = el("div", "modal-overlay");
+    var card = el("div", "modal-card");
+    var titleId = "modal-title-" + Math.random().toString(36).slice(2);
+    card.setAttribute("role", "dialog");
+    card.setAttribute("aria-modal", "true");
+    card.setAttribute("aria-labelledby", titleId);
+    var closeBtn = el("button", "modal-close", "Close");
+    closeBtn.type = "button";
+    closeBtn.setAttribute("aria-label", "Close dialog");
+    var title = el("h2", "modal-title", esc(cfg.title || "Notice"));
+    title.id = titleId;
+    var body = el("div", "modal-body");
+    body.innerHTML = cfg.body || "";
+    var actions = el("div", "modal-actions");
+    function close() {
+      document.removeEventListener("keydown", onDocKey);
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      if (previous && previous.focus) previous.focus();
+    }
+    function focusables() {
+      return Array.prototype.slice.call(card.querySelectorAll("a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"))
+        .filter(function (n) { return n.offsetParent !== null || n === document.activeElement; });
+    }
+    function onDocKey(e) {
+      if (e.key === "Escape") { e.preventDefault(); close(); return; }
+      if (e.key !== "Tab") return;
+      var f = focusables();
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+    closeBtn.addEventListener("click", close);
+    (cfg.actions || []).forEach(function (a) {
+      var btn = el("button", a.primary ? "btn-primary" : "btn-secondary", esc(a.label));
+      btn.type = "button";
+      btn.addEventListener("click", function () { if (a.onClick) a.onClick(close); else close(); });
+      actions.appendChild(btn);
+    });
+    card.appendChild(closeBtn); card.appendChild(title); card.appendChild(body); card.appendChild(actions);
+    overlay.appendChild(card); document.body.appendChild(overlay);
+    overlay.addEventListener("click", function (e) { if (e.target === overlay) close(); });
+    document.addEventListener("keydown", onDocKey);
+    setTimeout(function () {
+      var f = focusables();
+      (f[0] || card).focus();
+    }, 0);
+    return { close: close, node: overlay };
+  }
+
+  function showBranchPopup(branchMs, ctx, run) {
+    if (document.querySelector(".modal-overlay")) return;
+    var branchPick = document.getElementById("branch-pick");
+    showModal({
+      title: "Pick a branch first",
+      body: "Results are compared <em>within</em> a branch (so e.g. an Electrical seat won't show where you wanted CSE). Choose your branch to continue.",
+      actions: [
+        { label: "Choose branch", primary: true, onClick: function (close) {
+          close();
+          setTimeout(function () {
+            if (branchPick && branchPick.scrollIntoView) branchPick.scrollIntoView({ behavior: "smooth", block: "center" });
+            if (branchMs && branchMs.open) branchMs.open();
+            if (branchMs && branchMs.focus) branchMs.focus();
+          }, 0);
+        } },
+        { label: "Select CSE family", onClick: function (close) {
+          if (branchMs && branchMs.set) branchMs.set(cseFamilyPresent(ctx));
+          close();
+          run();
+        } },
+        { label: "Close", onClick: function (close) { close(); } },
+      ],
+    });
   }
 
   /* ---- simulator rendering ---- */
@@ -313,7 +429,9 @@
   // they differ only in BREADTH. Safe-band anchors are always included, and because they are the
   // easiest (highest prefRank) seats they naturally settle at the bottom as your guaranteed net.
   function strategyPicks(reachable, oor, strategy) {
-    var byPref = function (a, b) { return (a.prefRank - b.prefRank) || (a.bestClosing - b.bestClosing); };
+    var byPref = function (a, b) {
+      return (a.prefScore - b.prefScore) || (a.prefRank - b.prefRank) || (a.bestClosing - b.bestClosing);
+    };
     var nearMiss = function (a, b) { return b.bestClosing - a.bestClosing; };   // out-of-reach closest to rank first
     var pref = function (list) { return list.slice().sort(byPref); };
     var safe = reachable.filter(function (r) { return r.band === "Safe"; }).sort(byPref);
@@ -356,7 +474,10 @@
       "&mdash; so a tougher college may need an earlier round. (From " + AVAIL_YR + " allotments.)"));
 
     if (reachable.length || unreachable.length) {
-      var sug = el("div", "choice-suggest");
+      var sug = el("details", "choice-suggest");
+      var sugSummary = el("summary", "choice-summary", "Choice-filling list");
+      var sugBody = el("div", "choice-body");
+      sug.appendChild(sugSummary);
       // strategy segmented control
       var pick = el("div", "strat-pick");
       pick.appendChild(el("span", "strat-lbl", "Choice-list strategy:"));
@@ -364,14 +485,15 @@
         var btn = el("button", "strat-btn", s.t); btn.type = "button"; btn.setAttribute("data-strat", s.k);
         pick.appendChild(btn);
       });
-      sug.appendChild(pick);
+      sugBody.appendChild(pick);
       var head = el("div", "choice-head");
       head.innerHTML = "<h2>Your choice-filling list <span class='round-count' id='cl-count'>0</span></h2>";
       var copyBtn = el("button", "btn-copy", "Copy list"); copyBtn.type = "button";
-      head.appendChild(copyBtn); sug.appendChild(head);
+      head.appendChild(copyBtn); sugBody.appendChild(head);
       var desc = el("p", "muted strat-desc");
       var ol = el("ol", "choice-order");
-      sug.appendChild(desc); sug.appendChild(ol);
+      sugBody.appendChild(desc); sugBody.appendChild(ol);
+      sug.appendChild(sugBody);
       container.appendChild(sug);
 
       var lines = [];
@@ -387,8 +509,10 @@
           lines.push((i + 1) + ". " + r.college + " — " + r.branch + " [" + poolLabel(r) + "]  (" +
             (oor ? "stretch" : BUCKET_SHORT[r.bucket] + ", " + r.band) + ")");
         });
+        var stratMeta = (STRATS.filter(function (s) { return s.k === strategy; })[0] || {});
         document.getElementById("cl-count").textContent = picks.length;
-        desc.innerHTML = (STRATS.filter(function (s) { return s.k === strategy; })[0] || {}).d +
+        sugSummary.innerHTML = "Choice-filling list <span class='round-count'>" + picks.length + "</span> <span class='sub-inline'>" + esc(stratMeta.t || strategy) + "</span>";
+        desc.innerHTML = stratMeta.d +
           " Fill them on the DTE portal <strong>in this order</strong> (best first); you&rsquo;re allotted one seat per round, by merit.";
         Array.prototype.forEach.call(pick.querySelectorAll(".strat-btn"), function (b) {
           b.classList.toggle("active", b.getAttribute("data-strat") === strategy);
@@ -425,6 +549,7 @@
       if (col === "college") return ((r.college || "") + " " + (r.branch || "")).toLowerCase();
       if (col === "pool") return (poolLabel(r) || "").toLowerCase();
       if (col === "city") return ((r.city || "") + " " + (r.type || "")).toLowerCase();
+      if (col === "opening") return (r.opening == null ? (r.bestOpening == null ? 9e9 : r.bestOpening) : r.opening);
       if (col === "closing") return (r.closing == null ? r.bestClosing : r.closing);
       if (col === "seats") return (r.seats && r.seats.total) || 0;
       if (col === "chance") return BAND_ORDER[r.band] || 0;
@@ -440,7 +565,7 @@
     }
 
     if (reachable.length > 1) container.appendChild(el("p", "muted sim-sort-hint",
-      "Tip: <strong>click a column heading</strong> to sort each round by it (click again to reverse). &ldquo;#&rdquo; restores the recommended order."));
+      "Tip: sort by <strong>Opening rank</strong> to see demand, or <strong>Closing rank</strong> to see how far the seat usually goes. &ldquo;#&rdquo; restores the recommended order."));
     var rounds = el("div", "sim-rounds");
     container.appendChild(rounds);
 
@@ -498,7 +623,8 @@
   var SIM_COLS = [
     { k: "demand", h: "#", cls: "num" }, { k: "college", h: "College &middot; Branch" },
     { k: "pool", h: "Pool" }, { k: "city", h: "City / Type" },
-    { k: "closing", h: "Closing rank", cls: "num", sub: "basis" },
+    { k: "opening", h: "Opening rank", cls: "num", sub: "demand" },
+    { k: "closing", h: "Closing rank", cls: "num", sub: "chance" },
     { k: "seats", h: "Seats", cls: "num", sub: "(TFW)" }, { k: "chance", h: "Chance" }
   ];
   function simHead(sort) {   // sort = {col,dir} -> clickable headers; falsy -> plain (out-of-reach table)
@@ -525,12 +651,14 @@
       var hist = r.historical ? " <span class='muted' title='historical college — not in current intake'>&middot; historical</span>" : "";
       var up = r.viaUpgrade ? " <span class='sub-note' title='reachable in Round 1 only after the first-round upgrade'>incl. upgrade</span>" : "";
       var closeSub = (bucket === "out") ? "out of reach" : (r.year + " " + esc(BUCKET_SHORT[bucket]) + up);
+      var opening = r.opening == null ? r.bestOpening : r.opening;
       var tr = el("tr", "row-" + r.band.toLowerCase());
       tr.innerHTML =
         "<td class='num pref-no'>" + (bucket === "out" ? "&mdash;" : counter.v) + "</td>" +   // per-round position (best-first)
         "<td><span class='co-name'>" + esc(r.college) + hist + "</span><span class='sub'>" + esc(r.branch) + horizonBadge(r.avail) + "</span>" + coCta(r.cid) + "</td>" +
         "<td>" + poolTag(r) + domTag(r) + "</td>" +
         "<td>" + esc(r.city) + "<span class='sub'>" + esc(r.type) + "</span></td>" +
+        "<td class='num'>" + fmt(opening) + " <span class='sub'>" + (opening == null ? "opening unavailable" : "first admitted") + "</span></td>" +
         "<td class='num'>" + fmt(r.closing == null ? r.bestClosing : r.closing) + " <span class='sub'>" + closeSub + "</span></td>" +
         "<td class='num'>" + seats + "</td>" +
         "<td><span class='tag tag-" + r.band.toLowerCase() + "'>" + r.band + "</span></td>";
@@ -544,6 +672,13 @@
     var pref = {};
     if (bp) Object.keys(bp).forEach(function (bid) {
       bp[bid].forEach(function (pair, i) { pref[pair[0] + "|" + bid] = i + 1; });
+    });
+    return pref;
+  }
+  function prefScoreFromBranchPriority(bp) {
+    var pref = {};
+    if (bp) Object.keys(bp).forEach(function (bid) {
+      bp[bid].forEach(function (pair) { pref[pair[0] + "|" + bid] = pair[1]; });
     });
     return pref;
   }
@@ -676,26 +811,37 @@
     var form = document.getElementById("sim-form");
     var results = document.getElementById("results");
     var filtersBox = document.getElementById("filters");
+    var branchEl = document.getElementById("branch-pick");
+    var formMsg = document.getElementById("form-msg");
     loadAll(["colleges", "branches", "cities", "intake", "config", "predictor_jee", "demand_stats"]).then(function (a) {
       var ctx = buildContext(a[0], a[1], a[2], a[3], a[4]);
       ctx.pref = prefFromBranchPriority(a[6] && a[6].branch_priority);   // (college|branch) -> within-branch demand rank
+      ctx.prefScore = prefScoreFromBranchPriority(a[6] && a[6].branch_priority);   // (college|branch) -> comparable demand score
       ctx.avail = (a[6] && a[6].availability) || {};                     // (college -> branch -> availability horizon)
       AVAIL_YR = (a[6] && a[6].availability_year) || AVAIL_YR;
       var pred = a[5]; pred._roundMap = JEE_ROUND_MAP;
-      var ms, curStrat = qsParams().strat || "balanced", curSort = qsParams().sort || "demand";
-      function setStrat(s) { curStrat = s; var u = new URLSearchParams(location.search); u.set("strat", s); history.replaceState(null, "", location.pathname + "?" + u); }
-      function setSort(s) { curSort = s; var u = new URLSearchParams(location.search); u.set("sort", s); history.replaceState(null, "", location.pathname + "?" + u); }
+      var initialParams = qsParams();
+      var ms, curStrat = initialParams.strat || "balanced", curSort = initialParams.sort || "demand";
+      var keepStratParam = initialParams.strat != null, keepSortParam = initialParams.sort != null;
+      function setStrat(s) { keepStratParam = true; curStrat = s; var u = new URLSearchParams(location.search); u.set("strat", s); history.replaceState(null, "", location.pathname + "?" + u); }
+      function setSort(s) { keepSortParam = true; curSort = s; var u = new URLSearchParams(location.search); u.set("sort", s); history.replaceState(null, "", location.pathname + "?" + u); }
       function run(e) {
         if (e) e.preventDefault();
-        var rawRank = (document.getElementById("in-rank").value || "").trim();
+        var rankEl = document.getElementById("in-rank");
+        var rawRank = (rankEl.value || "").trim();
         var rank = parseInt(rawRank, 10);
         if (!/^\d+$/.test(rawRank) || isNaN(rank) || rank < 1) {
-          results.innerHTML = "<p class='empty'>Enter a valid JEE rank &mdash; a whole number 1 or higher.</p>"; return;
-        }
-        if (!ms.branch.values().size) {
-          results.innerHTML = "<p class='empty'>Pick at least one <strong>branch</strong> to simulate. Results are compared <em>within</em> a branch, so a branch must be chosen (you can pick several). Open <strong>&ldquo;Filter by branch&hellip;&rdquo;</strong> below and select your branch(es).</p>";
+          setFormMsg(formMsg, "Enter a valid JEE rank &mdash; a whole number 1 or higher.", true);
+          results.innerHTML = "";
+          rankEl.focus();
+          if (rankEl.scrollIntoView) rankEl.scrollIntoView({ behavior: "smooth", block: "center" });
           return;
         }
+        if (!ms.branch.values().size) {
+          showBranchPopup(ms.branch, ctx, run);
+          return;
+        }
+        setFormMsg(formMsg, "", false);
         var opts = {
           rank: rank, social: document.getElementById("in-cat").value, gender: document.getElementById("in-gender").value,
           domicile: document.getElementById("in-dom").value, tfw: document.getElementById("in-tfw").checked,
@@ -705,9 +851,10 @@
         };
         renderSimulation(simulate(ctx, pred, opts), results, opts);
         setParams({ rank: rank, cat: opts.social, gender: opts.gender, dom: opts.domicile, tfw: opts.tfw ? 1 : "", quota: opts.quota,
-          city: Array.from(opts.citySet).join(","), branch: Array.from(opts.branchSet).join(","), type: Array.from(opts.typeSet).join(","), college: Array.from(opts.collegeSet).join(",") });
+          city: Array.from(opts.citySet).join(","), branch: Array.from(opts.branchSet).join(","), type: Array.from(opts.typeSet).join(","), college: Array.from(opts.collegeSet).join(","),
+          strat: keepStratParam || curStrat !== "balanced" ? curStrat : "", sort: keepSortParam || curSort !== "demand" ? curSort : "" });
       }
-      ms = buildMultiFilters(ctx, filtersBox, run);
+      ms = buildMultiFilters(ctx, branchEl, filtersBox, run);
       var p = qsParams(), split = function (s) { return s ? s.split(",") : []; };
       function setVal(id, v) { var e = document.getElementById(id); if (e && v != null && v !== "") e.value = v; }
       setVal("in-rank", p.rank); setVal("in-cat", p.cat); setVal("in-gender", p.gender); setVal("in-dom", p.dom); setVal("in-quota", p.quota);
@@ -717,7 +864,7 @@
       form.addEventListener("submit", run);
       form.addEventListener("change", function (e) { if (e.target.closest && e.target.closest(".ms")) return; run(); });
       if (p.rank) run();
-      else results.innerHTML = "<p class='empty'>Enter your <strong>JEE rank</strong> and pick at least one <strong>branch</strong> below, then Simulate.</p>";
+      else setFormMsg(formMsg, "Enter your JEE rank, pick a branch, then Simulate.", false);
     }).catch(function (e) { showError(results, e); });
   }
 
@@ -863,8 +1010,9 @@
       (unreachable.length ? " &middot; " + unreachable.length + " out of reach" : "")));
 
     var sortState = resParseSort(opts.sort);
+    if (opts.choiceList) renderQeChoiceList(reachable, unreachable, container, opts);
     if (reachable.length > 1) container.appendChild(el("p", "muted sim-sort-hint",
-      "Tip: <strong>click a column heading</strong> to sort (click again to reverse). &ldquo;#&rdquo; restores the recommended order."));
+      "Tip: sort by <strong>Opening rank</strong> to see demand, or <strong>Closing rank</strong> to see how far the seat usually goes. &ldquo;#&rdquo; restores the recommended order."));
     var body = el("div"); container.appendChild(body);
     function paint() {
       body.innerHTML = "";
@@ -891,11 +1039,99 @@
 
   function bandTag(b) { return '<span class="tag tag-' + b.toLowerCase() + '">' + b + "</span>"; }
 
+  var QE_STRATS = [
+    { k: "safe", t: "Safe", d: "Only options marked Safe, ordered by demand &mdash; the colleges that usually start with the strongest admitted ranks first." },
+    { k: "balanced", t: "Balanced", d: "A realistic spread: a few stretch picks, then the strongest reachable options, with safe anchors included." },
+    { k: "greedy", t: "Greedy", d: "Aspirational: a longer list of high-demand options first, then reachable and safe anchors so you still have a net." },
+  ];
+  function qeByDemand(a, b) {
+    var ao = a.opening == null ? 9e9 : a.opening, bo = b.opening == null ? 9e9 : b.opening;
+    return (ao - bo) || ((a.closing || 9e9) - (b.closing || 9e9)) ||
+      (a.college || "").localeCompare(b.college || "") || (a.branch || "").localeCompare(b.branch || "");
+  }
+  function qeNearMiss(a, b) { return (b.margin || -9e9) - (a.margin || -9e9); }
+  function qeChoicePicks(reachable, unreachable, strategy) {
+    var pref = function (list) { return list.slice().sort(qeByDemand); };
+    var safe = reachable.filter(function (r) { return r.band === "Safe"; }).sort(qeByDemand);
+    if (strategy === "safe") return safe.slice(0, CHOICE_CAP);
+    if (strategy === "balanced") {
+      var dreams = pref(unreachable).slice(0, 3);
+      var body = dreams.concat(pref(reachable)).slice(0, 11);
+      return body.concat(safe.slice(0, 2)).sort(qeByDemand);
+    }
+    var dreams2 = pref(unreachable).slice(0, 10).concat(unreachable.slice().sort(qeNearMiss).slice(0, 6));
+    var body2 = dreams2.concat(pref(reachable)).sort(qeByDemand).slice(0, 25);
+    return body2.concat(safe.slice(0, 3)).sort(qeByDemand);
+  }
+  function qeChoicePool(r) {
+    var p = r.tfw ? "TFW" : (r.social || "UR");
+    return r.gender === "F" ? p + " Female" : p;
+  }
+  function renderQeChoiceList(reachable, unreachable, container, opts) {
+    var sug = el("details", "choice-suggest");
+    var sugSummary = el("summary", "choice-summary", "Choice-filling list");
+    var sugBody = el("div", "choice-body");
+    sug.appendChild(sugSummary);
+    var pick = el("div", "strat-pick");
+    pick.appendChild(el("span", "strat-lbl", "Choice-list strategy:"));
+    QE_STRATS.forEach(function (s) {
+      var btn = el("button", "strat-btn", s.t); btn.type = "button"; btn.setAttribute("data-strat", s.k);
+      pick.appendChild(btn);
+    });
+    sugBody.appendChild(pick);
+    var head = el("div", "choice-head");
+    var countEl = el("span", "round-count", "0");
+    var title = el("h2", null, "Your choice-filling list ");
+    title.appendChild(countEl);
+    var copyBtn = el("button", "btn-copy", "Copy list"); copyBtn.type = "button";
+    head.appendChild(title);
+    head.appendChild(copyBtn); sugBody.appendChild(head);
+    var desc = el("p", "muted strat-desc");
+    var ol = el("ol", "choice-order");
+    sugBody.appendChild(desc); sugBody.appendChild(ol);
+    sug.appendChild(sugBody); container.appendChild(sug);
+
+    var lines = [];
+    function renderList(strategy) {
+      var picks = qeChoicePicks(reachable, unreachable, strategy);
+      var stratMeta = (QE_STRATS.filter(function (s) { return s.k === strategy; })[0] || {});
+      ol.innerHTML = ""; lines = [];
+      picks.forEach(function (r, i) {
+        var li = el("li");
+        li.innerHTML = "<span class='co-name'>" + coLink(r.cid, r.college) + "</span> &mdash; " + esc(r.branch) +
+          " <span class='pool muted'>" + esc(qeChoicePool(r)) + "</span>" +
+          " <span class='co-rd sub'>" + (r.band === "Unreachable" ? "stretch" : r.band) +
+          " &middot; opens ~" + fmt(r.opening) + " &middot; closes ~" + fmt(r.closing) + "</span>";
+        ol.appendChild(li);
+        lines.push((i + 1) + ". " + r.college + " — " + r.branch + " [" + qeChoicePool(r) + "]  (" +
+          (r.band === "Unreachable" ? "stretch" : r.band) + ", opens ~" + fmt(r.opening) + ", closes ~" + fmt(r.closing) + ")");
+      });
+      countEl.textContent = picks.length;
+      sugSummary.innerHTML = "Choice-filling list <span class='round-count'>" + picks.length + "</span> <span class='sub-inline'>" + esc(stratMeta.t || strategy) + "</span>";
+      desc.innerHTML = stratMeta.d + " Fill them on the DTE portal <strong>in this order</strong> (best first).";
+      Array.prototype.forEach.call(pick.querySelectorAll(".strat-btn"), function (b) {
+        b.classList.toggle("active", b.getAttribute("data-strat") === strategy);
+      });
+    }
+    pick.addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest(".strat-btn");
+      if (b) { var s = b.getAttribute("data-strat"); renderList(s); if (opts.onChoiceStrategy) opts.onChoiceStrategy(s); }
+    });
+    renderList(opts.choiceStrategy || "balanced");
+    copyBtn.addEventListener("click", function () {
+      var text = lines.join("\n");
+      var done = function () { copyBtn.textContent = "Copied ✓"; setTimeout(function () { copyBtn.textContent = "Copy list"; }, 1800); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, done);
+      else { var ta = el("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e2) {} document.body.removeChild(ta); done(); }
+    });
+  }
+
   // ---- 12th-% predictor results table: columns + click-to-sort (one flat table) ----
   var RES_COLS = [
     { k: "rec", h: "#", cls: "num" }, { k: "college", h: "College" }, { k: "city", h: "City" },
     { k: "branch", h: "Branch" }, { k: "type", h: "Type" },
-    { k: "closing", h: "Closing rank", cls: "num", sub: "basis" },
+    { k: "opening", h: "Opening rank", cls: "num", sub: "demand" },
+    { k: "closing", h: "Closing rank", cls: "num", sub: "chance" },
     { k: "seats", h: "Seats", cls: "num", sub: "(TFW)" }, { k: "chance", h: "Chance" }
   ];
   var RES_KEYS = {}; RES_COLS.forEach(function (c) { RES_KEYS[c.k] = 1; });
@@ -910,6 +1146,7 @@
     }).join("") + "</tr></thead>";
   }
   function resKey(r, col) {
+    if (col === "opening") return (r.opening == null ? 9e9 : r.opening);
     if (col === "closing") return (r.closing == null ? 9e9 : r.closing);
     if (col === "seats") return (r.seats && r.seats.total) || 0;
     if (col === "chance") return RES_BAND[r.band] || 0;
@@ -954,6 +1191,7 @@
         "<td>" + esc(r.city) + "</td>" +
         "<td>" + esc(r.branch) + pool + "</td>" +
         "<td>" + esc(r.type) + "</td>" +
+        "<td class='num'>" + fmt(r.opening) + " <span class='sub'>first admitted</span></td>" +
         "<td class='num'>" + fmt(r.closing) + " <span class='sub'>" + r.year + " " + esc(r.round) + "</span></td>" +
         "<td class='num'>" + seats + "</td>" +
         "<td>" + bandTag(r.band) + "</td>";
@@ -1017,6 +1255,7 @@
     var form = document.getElementById("predict-form");
     var results = document.getElementById("results");
     var filtersBox = document.getElementById("filters");
+    var formMsg = document.getElementById("form-msg");
     var assets = ["colleges", "branches", "cities", "intake", "config",
       mode === "qe" ? "predictor_qe" : "predictor_jee"];
     loadAll(assets).then(function (a) {
@@ -1034,7 +1273,9 @@
       }
       var p = qsParams();
       var curSort = p.sort || "rec";
+      var curChoiceStrat = p.strat || "balanced";
       function setSort(s) { curSort = s; var u = new URLSearchParams(location.search); u.set("sort", s); history.replaceState(null, "", location.pathname + "?" + u); }
+      function setChoiceStrat(s) { curChoiceStrat = s; var u = new URLSearchParams(location.search); u.set("strat", s); history.replaceState(null, "", location.pathname + "?" + u); }
       function setVal(id, v) { var e = document.getElementById(id); if (e && v != null && v !== "") e.value = v; }
       setVal("in-rank", p.rank); setVal("in-pct", p.pct); setVal("in-cat", p.cat);
       setVal("in-gender", p.gender); setVal("in-dom", p.dom);
@@ -1058,20 +1299,40 @@
           city: fc.city.value, branch: fc.branch.value, type: fc.type.value,
           sort: curSort === "rec" ? "" : curSort };
         if (mode === "qe") {
-          var pct = parseFloat(document.getElementById("in-pct").value);
+          var pctEl = document.getElementById("in-pct");
+          var pct = parseFloat(pctEl.value);
           var yr = parseInt(document.getElementById("f-year").value, 10);
-          if (isNaN(pct) || pct < 0 || pct > 100) { results.innerHTML = "<p class='empty'>Enter a valid Class-XII % between 0 and 100.</p>"; return; }
+          if (isNaN(pct) || pct < 0 || pct > 100) {
+            setFormMsg(formMsg, "Enter a valid Class-XII % between 0 and 100.", true);
+            results.innerHTML = "";
+            pctEl.focus();
+            if (pctEl.scrollIntoView) pctEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            return;
+          }
+          setFormMsg(formMsg, "", false);
+          opts.choiceList = true;
+          opts.choiceStrategy = curChoiceStrat;
+          opts.onChoiceStrategy = setChoiceStrat;
           opts.year = yr;
           opts.rank = meritRankForPct(pred, yr, pct);
-          stateP.pct = pct; stateP.year = yr;
+          stateP.pct = pct; stateP.year = yr; stateP.strat = curChoiceStrat === "balanced" ? "" : curChoiceStrat;
           var est = el("p", "rank-est", "Your estimated qualifying-exam merit rank for " + yr +
             ": <strong>" + fmt(opts.rank) + "</strong> (from " + pct + "%).");
           results.innerHTML = ""; results.appendChild(est);
           var r1 = predict(ctx, pred, opts);
           var holder = el("div"); renderResults(r1, holder, opts); results.appendChild(holder);
         } else {
-          var rank = parseInt(document.getElementById("in-rank").value, 10);
-          if (isNaN(rank)) { results.innerHTML = "<p class='empty'>Enter your JEE rank.</p>"; return; }
+          var rankEl = document.getElementById("in-rank");
+          var rawRank = (rankEl.value || "").trim();
+          var rank = parseInt(rawRank, 10);
+          if (!/^\d+$/.test(rawRank) || isNaN(rank) || rank < 1) {
+            setFormMsg(formMsg, "Enter your JEE rank &mdash; a whole number 1 or higher.", true);
+            results.innerHTML = "";
+            rankEl.focus();
+            if (rankEl.scrollIntoView) rankEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            return;
+          }
+          setFormMsg(formMsg, "", false);
           opts.rank = rank; stateP.rank = rank;
           renderResults(predict(ctx, pred, opts), results, opts);
         }
@@ -1084,6 +1345,7 @@
       filtersBox.addEventListener("change", run);
       var yEl = document.getElementById("f-year"); if (yEl) yEl.addEventListener("change", run);
       if (p.rank || p.pct) run();
+      else setFormMsg(formMsg, mode === "qe" ? "Enter your Class-XII percentage, then Show my colleges." : "Enter your JEE rank, then Show colleges.", false);
     }).catch(function (e) { showError(results, e); });
   }
 

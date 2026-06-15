@@ -33,18 +33,18 @@ permalink: /branch-rankings/
       </select>
     </div>
     <div class="f-group">
-      <label for="br-metric">Rank by</label>
+      <label for="br-metric">Demand metric</label>
       <select id="br-metric">
-        <option value="">Admit-rank midpoint (opening&ndash;closing)</option>
+        <option value="">Midpoint of admitted ranks (balanced)</option>
         <option value="open">Opening rank (best admitted)</option>
         <option value="close">Closing rank (last admitted)</option>
       </select>
     </div>
     <div class="f-group">
-      <label for="br-sort">Sort by</label>
+      <label for="br-sort">Display order</label>
       <select id="br-sort">
-        <option value="">Demand &mdash; most sought-after first</option>
-        <option value="demand-desc">Demand &mdash; least sought-after first</option>
+        <option value="">Most competitive first</option>
+        <option value="demand-desc">Least competitive first</option>
         <option value="name">College name (A&ndash;Z)</option>
       </select>
     </div>
@@ -53,9 +53,11 @@ permalink: /branch-rankings/
     Demand = how competitive a college&rsquo;s open/general seat is &mdash; <strong>lower rank = more sought-after</strong>.
     Ranked <strong>per branch</strong> from the official 2023&ndash;25 cut-offs (no reputation adjustment).
     <details class="hint-more"><summary>What do Opening / Midpoint / Closing mean?</summary>
-    <strong>Rank by</strong> the <strong>opening</strong> rank (best/first admitted &mdash; surfaces a college with a strong top
+    <strong>Demand metric</strong> chooses the number used to compare colleges: <strong>opening</strong> rank
+    (best/first admitted &mdash; surfaces a college with a strong top
     but a wide spread), the <strong>midpoint</strong> of the admitted range (default), or the <strong>closing</strong> rank
-    (last admitted). Each row shows all three so you can see the full spread.</details>
+    (last admitted). <strong>Display order</strong> then decides whether that list goes most competitive first,
+    least competitive first, or alphabetically. Each row shows all three ranks so you can see the full spread.</details>
   </p>
 </form>
 
