@@ -265,7 +265,7 @@ td.num .demand-v + .sub { margin-top: 3px; font-size: 11.5px; }
 a.co-link { color: inherit; text-decoration: none; }
 a.co-link:hover, a.co-link:focus { color: var(--brand-dk); text-decoration: underline; }
 /* explicit "view cut-off history" CTA on predictor / branch-ranks rows */
-a.row-cta { display: inline-flex; align-items: center; min-height: 36px; margin-top: 5px; font-size: 11.5px; font-weight: 600; color: var(--brand); line-height: 1.25; }
+a.row-cta { display: flex; width: fit-content; align-items: center; min-height: 36px; margin-top: 5px; font-size: 11.5px; font-weight: 600; color: var(--brand); line-height: 1.25; }
 a.row-cta:hover, a.row-cta:focus { text-decoration: underline; color: var(--brand-dk); }
 /* explorer: search box spans the full filter row */
 .f-group-search { grid-column: 1 / -1; }
