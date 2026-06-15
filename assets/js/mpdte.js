@@ -1040,9 +1040,9 @@
   function bandTag(b) { return '<span class="tag tag-' + b.toLowerCase() + '">' + b + "</span>"; }
 
   var QE_STRATS = [
-    { k: "safe", t: "Safe", d: "Only options marked Safe, ordered by demand &mdash; the colleges that usually start with the strongest admitted ranks first." },
-    { k: "balanced", t: "Balanced", d: "A realistic spread: a few stretch picks, then the strongest reachable options, with safe anchors included." },
-    { k: "greedy", t: "Greedy", d: "Aspirational: a longer list of high-demand options first, then reachable and safe anchors so you still have a net." },
+    { k: "safe", t: "Safe", d: "Only the seats you can comfortably get, most sought-after first &mdash; your reliable list (no stretch picks)." },
+    { k: "balanced", t: "Balanced", d: "A realistic spread: a few stretch picks (popular colleges that rarely reach this round) up top, then the strongest seats you can comfortably get." },
+    { k: "greedy", t: "Greedy", d: "Aspirational: a long list led by the most sought-after colleges (incl. ones that rarely leave seats for this round), down to comfortable anchors so you&rsquo;re never unallotted." },
   ];
   function qeByDemand(a, b) {
     var ao = a.opening == null ? 9e9 : a.opening, bo = b.opening == null ? 9e9 : b.opening;
@@ -1050,18 +1050,35 @@
       (a.college || "").localeCompare(b.college || "") || (a.branch || "").localeCompare(b.branch || "");
   }
   function qeNearMiss(a, b) { return (b.margin || -9e9) - (a.margin || -9e9); }
+  function dedupeQe(arr) {   // QE rows have no bid; key on (college, branch, pool, gender)
+    var seen = {}, out = [];
+    arr.forEach(function (r) {
+      var k = r.cid + "|" + r.branch + "|" + r.social + "|" + r.gender;
+      if (!seen[k]) { seen[k] = 1; out.push(r); }
+    });
+    return out;
+  }
+  // Three choice-list strategies. The Qualifying-Exam round runs on LEFTOVER seats, so the band
+  // metric collapses (a decent rank clears almost everything -> nearly all "Safe"). What actually
+  // separates the strategies is BREADTH and whether you lead with STRETCH picks (popular colleges
+  // that usually fill before this round). Stretch picks are PINNED at the top (most-sought-after
+  // first) and NOT re-sorted into the body, so the three lists read as visibly different.
   function qeChoicePicks(reachable, unreachable, strategy) {
     var pref = function (list) { return list.slice().sort(qeByDemand); };
     var safe = reachable.filter(function (r) { return r.band === "Safe"; }).sort(qeByDemand);
-    if (strategy === "safe") return safe.slice(0, CHOICE_CAP);
+    // "comfortable" pool: Safe-band seats, or (for a weaker rank with none) the surest reachable ones.
+    var comfy = safe.length ? safe
+      : pref(reachable.slice().sort(qeNearMiss).slice(0, 15));
+    if (strategy === "safe") return dedupeQe(comfy).slice(0, CHOICE_CAP);
     if (strategy === "balanced") {
-      var dreams = pref(unreachable).slice(0, 3);
-      var body = dreams.concat(pref(reachable)).slice(0, 11);
-      return body.concat(safe.slice(0, 2)).sort(qeByDemand);
+      var dreams = pref(unreachable).slice(0, 3);                       // stretch picks, pinned on top
+      var body = dedupeQe(dreams.concat(pref(reachable))).slice(0, 13); // + most-sought-after reachable
+      return dedupeQe(body.concat(comfy.slice(0, 2)));                  // + comfortable anchors (no re-sort)
     }
-    var dreams2 = pref(unreachable).slice(0, 10).concat(unreachable.slice().sort(qeNearMiss).slice(0, 6));
-    var body2 = dreams2.concat(pref(reachable)).sort(qeByDemand).slice(0, 25);
-    return body2.concat(safe.slice(0, 3)).sort(qeByDemand);
+    // greedy: a long aspirational list — top dreams + nearest misses pinned, then everything reachable
+    var dreams2 = dedupeQe(pref(unreachable).slice(0, 10).concat(unreachable.slice().sort(qeNearMiss).slice(0, 6)));
+    var body2 = dedupeQe(dreams2.concat(pref(reachable))).slice(0, 28);
+    return dedupeQe(body2.concat(comfy.slice(0, 3)));
   }
   function qeChoicePool(r) {
     var p = r.tfw ? "TFW" : (r.social || "UR");
