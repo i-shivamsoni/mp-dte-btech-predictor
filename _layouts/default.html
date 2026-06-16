@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% if page.title %}{{ page.title }} · {% endif %}{{ site.title }}</title>
   <meta name="description" content="{{ page.description | default: site.description }}">
+  <script>
+    (function () {
+      var oldHost = "i-shivamsoni.github.io";
+      var oldBase = "/mp-dte-btech-predictor";
+      var newOrigin = "https://mp-dte-btech-predictor.vercel.app";
+      if (location.hostname !== oldHost) return;
+      var path = location.pathname;
+      if (path === oldBase) path = "/";
+      else if (path.indexOf(oldBase + "/") === 0) path = path.slice(oldBase.length);
+      else return;
+      location.replace(newOrigin + path + location.search + location.hash);
+    }());
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="{{ '/favicon.ico' | relative_url }}" sizes="any">
