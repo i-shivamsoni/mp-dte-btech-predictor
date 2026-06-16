@@ -1,0 +1,36 @@
+# Build/cache output
+_site/
+.jekyll-cache/
+.jekyll-metadata
+.bundle/
+vendor/
+__pycache__/
+*.pyc
+*.log
+
+# Vercel/local metadata
+.git/
+.github/
+.vercel/
+
+# Raw/source artifacts that are not needed for the Jekyll build
+*.pdf
+*.py
+*.sh
+*.md
+fees.xml
+AFRC_Fees/
+DTE_CutOff_BTech/
+DTE_Intake_BTech/
+DTE_MeritList_BTech/
+MeritLists/
+RTI/
+stitch_mp_dte_college_predictor/
+
+# Local investigation notes
+BUGHUNT_SUMMARY.md
+CONTINUE_HERE.md
+PREDICTOR_WINDOW_INVESTIGATION.md
+PROJECT_CONTEXT.md
+STITCH_PROMPT.md
+WEBAPP_CONTEXT.md
