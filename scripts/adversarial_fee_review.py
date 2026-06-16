@@ -34,6 +34,7 @@ REVIEW_PATH = OUT / "fees_remaining_review.csv"
 EVIDENCE_PATH = OUT / "fees_agent_evidence.csv"
 MANUAL_PATH = OUT / "fees_manual_queue.csv"
 HISTORICAL_PATH = OUT / "fees_resolved_historical.csv"
+ADJUDICATIONS_PATH = OUT / "fees_manual_adjudications.csv"
 
 AFRC_URL = "https://web.afrcmp.org/feesinformation/frm_showinstitutes.aspx"
 
@@ -211,6 +212,17 @@ def aggregate_review(rows: List[dict]) -> Dict[Tuple[str, str, str, str, str, st
     return grouped
 
 
+def load_adjudications(path: Path) -> Dict[str, dict]:
+    if not path.exists():
+        return {}
+    out = {}
+    for row in read_csv(path):
+        name = norm_name(clean(row.get("afrc_name")))
+        if name:
+            out[name] = row
+    return out
+
+
 def agent_a_reason(row: dict, score: float, city_ok: bool, risk: str) -> str:
     reason = clean(row.get("match_reason"))
     cid = clean(row.get("best_college_id"))
@@ -319,6 +331,7 @@ def judge(row: dict, score: float, city_ok: bool, risk: str, strong_current_alt:
 def main() -> None:
     summary = read_csv(SUMMARY_PATH)
     review = read_csv(REVIEW_PATH)
+    adjudications = load_adjudications(ADJUDICATIONS_PATH)
     colleges = {
         c["id"]: c
         for c in json.loads((ROOT / "assets" / "data" / "colleges.json").read_text(encoding="utf-8"))["colleges"]
@@ -336,9 +349,20 @@ def main() -> None:
         current_alt = alt["strong_current_alternative"]
         possible_current_alt = alt["possible_current_alternatives"]
         judge_status, public_action, judge_reason = judge(row, score, city_ok, risk, current_alt, possible_current_alt)
+        adj = adjudications.get(norm_name(clean(row.get("afrc_name"))), {})
+        if adj:
+            judge_status = clean(adj.get("decision_status")) or judge_status
+            public_action = clean(adj.get("public_action")) or public_action
+            judge_reason = clean(adj.get("decision_note")) or judge_reason
+            if clean(adj.get("decision_college_id")):
+                row = dict(row)
+                row["best_college_id"] = clean(adj.get("decision_college_id"))
+                row["best_college_name"] = clean(adj.get("decision_college_name"))
         evidence_rows.append({
             "judge_status": judge_status,
             "public_action": public_action,
+            "manual_decision": "yes" if adj else "no",
+            "manual_decision_note": clean(adj.get("decision_note")) if adj else "",
             "row_count": clean(row.get("row_count")),
             "review_row_count": agg.get("row_count_from_review", ""),
             "years": clean(row.get("years")),
@@ -371,7 +395,8 @@ def main() -> None:
         })
 
     fields = [
-        "judge_status", "public_action", "row_count", "review_row_count", "years", "year_range",
+        "judge_status", "public_action", "manual_decision", "manual_decision_note",
+        "row_count", "review_row_count", "years", "year_range",
         "afrc_name", "afrc_place", "afrc_address", "best_college_id", "best_college_name",
         "best_score", "second_college_id", "second_college_name", "second_score", "score_gap",
         "match_reason", "same_city", "risky_group_terms",
@@ -381,8 +406,14 @@ def main() -> None:
         "source_pages", "source_urls", "alternatives",
     ]
     write_csv(EVIDENCE_PATH, evidence_rows, fields)
-    write_csv(MANUAL_PATH, [r for r in evidence_rows if r["public_action"] != "do_not_publish_current_fee"], fields)
-    write_csv(HISTORICAL_PATH, [r for r in evidence_rows if r["judge_status"] == "resolved_historical_exclude"], fields)
+    write_csv(MANUAL_PATH, [
+        r for r in evidence_rows
+        if r["public_action"] not in {"do_not_publish_current_fee", "accepted_current_reviewed"}
+    ], fields)
+    write_csv(HISTORICAL_PATH, [
+        r for r in evidence_rows
+        if r["judge_status"] in {"resolved_historical_exclude", "user_resolved_historical_exclude"}
+    ], fields)
 
     counts = Counter(r["judge_status"] for r in evidence_rows)
     actions = Counter(r["public_action"] for r in evidence_rows)
@@ -392,6 +423,8 @@ def main() -> None:
     print(f"wrote {EVIDENCE_PATH.relative_to(ROOT)}")
     print(f"wrote {MANUAL_PATH.relative_to(ROOT)}")
     print(f"wrote {HISTORICAL_PATH.relative_to(ROOT)}")
+    if adjudications:
+        print(f"applied {len(adjudications)} manual adjudications from {ADJUDICATIONS_PATH.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":
