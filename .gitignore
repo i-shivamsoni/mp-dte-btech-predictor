@@ -2,6 +2,7 @@
 _site/
 vendor/
 .bundle/
+.vercel/
 .jekyll-cache/
 .jekyll-metadata
 __pycache__/

@@ -20,8 +20,10 @@ exclude:
   - __pycache__/
   - vendor/
   - .github/
+  - .vercel/
   - Gemfile
   - Gemfile.lock
+  - vercel.json
   - "*.pdf"
   - "*.py"
   - "*.sh"

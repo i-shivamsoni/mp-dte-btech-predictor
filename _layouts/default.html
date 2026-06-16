@@ -25,6 +25,12 @@
     {{ content }}
   </main>
   {% include footer.html %}
+  {% if jekyll.environment == "production" %}
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+  {% endif %}
   <script src="{{ '/assets/js/mpdte.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
   {% if page.page_id == "demand" %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>

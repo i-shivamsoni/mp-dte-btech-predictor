@@ -25,6 +25,7 @@ _layouts/ _includes/       Jekyll templates
 assets/js/mpdte.js         data loader + prediction engine + filters + table rendering
 assets/js/dashboard.js     demand-insights charts (Chart.js)
 .github/workflows/         CI: preprocess -> jekyll build -> deploy to GitHub Pages
+vercel.json                Vercel build command + _site output directory
 ```
 
 ## Develop locally
@@ -39,6 +40,18 @@ bundle exec jekyll serve       # http://127.0.0.1:4000
 qualifying-exam merit lists (which contain student names/roll numbers) are **not** part of this
 repository, so the percentage-route percentile lookup falls back to the committed asset when the
 raw lists are absent.
+
+## Deploy to Vercel
+
+The repo is ready for Vercel as a static Jekyll site. `vercel.json` pins the deployment settings:
+
+- install command: `bundle install`
+- build command: `JEKYLL_ENV=production bundle exec jekyll build`
+- output directory: `_site`
+
+Before the first production deploy, enable **Web Analytics** for the Vercel project in the Vercel
+dashboard. Production builds inject Vercel's analytics script automatically; local development
+builds leave it out.
 
 ## Contributing
 
