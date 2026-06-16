@@ -1687,7 +1687,8 @@
         }).join("");
         feeBox.innerHTML = "<summary><span>Fee history</span><span class='fee-summary'>Latest " +
           esc(fmtFeeRecord(latestSummaryRecord)) + "</span></summary>" +
-          "<div class='fee-history-panel'><p class='muted'>Accepted fee matches, shown in the source unit.</p>" +
+          "<div class='fee-history-panel'><p class='muted'>Accepted fee matches, shown in the source unit. " +
+          "Before relying on any amount, cross-check once with the official college or fee source linked here.</p>" +
           "<label class='fee-year-filter'>Session <select id='fee-year-filter'>" + yearOptions + "</select></label>" +
           "<div class='table-wrap'><table class='results fee-table'><thead><tr><th class='num'>Session</th><th>Branch</th>" +
           "<th class='num'>Fee</th><th>Fee note</th><th>Source</th></tr></thead><tbody>" + feeRows + "</tbody></table></div>" +
@@ -1708,7 +1709,7 @@
       } else {
         feeBox.innerHTML = "<summary><span>Fee history</span><span class='fee-summary'>No fee match</span></summary>" +
           "<div class='fee-history-panel'><p class='empty'>No accepted fee match yet for this college. " +
-          "Check the review CSV for doubtful matches before using a fee publicly.</p></div>";
+          "Do not force-match doubtful fee rows; cross-check the official college or fee source before using a fee publicly.</p></div>";
       }
       head.appendChild(feeBox);
 
