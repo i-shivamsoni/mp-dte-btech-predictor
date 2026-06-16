@@ -84,8 +84,19 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
 .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 14px; }
 .filters-standalone { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; margin-bottom: 18px; }
 .f-group-check { justify-content: flex-end; }
-.f-check { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--ink); }
-.f-check input { width: auto; }
+.f-group-tfw { grid-column: 1 / -1; align-self: end; }
+.f-group-check .f-check {
+  display: flex; align-items: flex-start; gap: 8px; flex-wrap: nowrap; min-height: 44px;
+  font-size: 14px; font-weight: 500; line-height: 1.35; letter-spacing: 0; text-transform: none;
+  color: var(--ink); cursor: pointer;
+}
+.f-group-check .f-check strong { font-weight: 700; }
+.f-check-text { min-width: 0; }
+.f-check .pool { flex: 0 0 auto; margin-left: 2px; margin-top: 1px; }
+.f-check input[type="checkbox"], .sim-group-toggle input[type="checkbox"], .hist-filters label.chk input[type="checkbox"] {
+  width: 16px; height: 16px; min-width: 16px; flex: 0 0 auto;
+  margin: 2px 0 0; padding: 0; border-radius: 3px; cursor: pointer; accent-color: var(--brand);
+}
 
 /* ---- banners / caveats ---- */
 .caveat { background: var(--moderate-bg); border: 1px solid #f0d98a; border-left: 4px solid var(--moderate);
@@ -112,6 +123,8 @@ table.results tbody tr:hover { background: #fafbff; }
 .row-reach { border-left-color: var(--reach); }
 .row-unreachable td { color: var(--faint); }
 .tfw { color: var(--accent); font-size: 12px; font-weight: 600; }
+.fee-v { font-weight: 700; color: var(--brand-dk); white-space: nowrap; }
+.fee-v .sub { color: var(--faint); font-weight: 500; }
 .pool { font-size: 11px; border: 1px solid var(--line-2); border-radius: 999px; padding: 1px 8px; margin-left: 4px; white-space: nowrap; }
 .pool-f { background: #fce7f3; border-color: #f5b6d3; color: #9d174d; }
 .pool-tfw { background: var(--accent-bg); border-color: #9ed7bb; color: var(--accent); font-weight: 700; }
@@ -131,6 +144,8 @@ details.unreachable summary { cursor: pointer; color: var(--muted); margin-botto
 .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
 .chip { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 3px 9px; font-size: 12.5px; }
 .chip em { color: var(--brand-dk); font-style: normal; font-weight: 700; }
+.co-fee { margin: 8px 0 0; font-size: 13.5px; }
+.co-fee .fee-v .sub { display: inline; margin-left: 3px; }
 
 /* ---- dashboard / accuracy ---- */
 .dash-block { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 22px; margin-bottom: 20px; }
@@ -179,6 +194,7 @@ body[data-page="accuracy"] main.container { max-width: 940px; }
   .nav-links.open { display: flex; }
   .cta-row { grid-template-columns: 1fr; }
   .page-title { font-size: 25px; }
+  .f-group-tfw { grid-column: 1 / -1; }
 }
 
 /* ---- counselling simulator: multi-select filters ---- */
@@ -308,6 +324,14 @@ label.f-check.disabled input { cursor: not-allowed; }
 .hist-filters label.chk { flex-direction: row; align-items: center; gap: 7px; }
 .hist-filters label.chk input { width: auto; }
 .hist-table { min-width: 720px; }
+.fee-history { margin: 18px 0 20px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); }
+.fee-history summary { cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; font-family: var(--sans); font-weight: 800; color: var(--brand-dk); }
+.fee-history[open] summary { border-bottom: 1px solid var(--line); }
+.fee-summary { font-size: 13px; font-weight: 600; color: var(--muted); }
+.fee-history-panel { padding: 12px 14px 14px; }
+.fee-year-filter { display: inline-flex; align-items: center; gap: 8px; margin: 6px 0 12px; font-family: var(--sans); font-weight: 700; color: var(--ink); }
+.fee-year-filter select { min-width: 160px; }
+.fee-table { min-width: 780px; }
 .college-card h3 a { color: var(--brand-dk); text-decoration: none; }
 .college-card h3 a:hover { color: var(--brand); text-decoration: underline; }
 .card-cta { margin: 8px 0 0; font-size: 13px; }

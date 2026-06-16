@@ -33,6 +33,17 @@ permalink: /branch-rankings/
       </select>
     </div>
     <div class="f-group">
+      <label for="br-fee">Fee range</label>
+      <select id="br-fee">
+        <option value="">Any fee</option>
+        <option value="na">Fee unavailable</option>
+        <option value="lte25">&le; &#8377;25k / sem</option>
+        <option value="25-50">&#8377;25k&ndash;50k / sem</option>
+        <option value="50-75">&#8377;50k&ndash;75k / sem</option>
+        <option value="gte75">&#8377;75k+ / sem</option>
+      </select>
+    </div>
+    <div class="f-group">
       <label for="br-metric">Demand metric</label>
       <select id="br-metric">
         <option value="">Midpoint of admitted ranks (balanced)</option>
@@ -45,6 +56,8 @@ permalink: /branch-rankings/
       <select id="br-sort">
         <option value="">Most competitive first</option>
         <option value="demand-desc">Least competitive first</option>
+        <option value="fee-asc">Fee: low to high</option>
+        <option value="fee-desc">Fee: high to low</option>
         <option value="name">College name (A&ndash;Z)</option>
       </select>
     </div>

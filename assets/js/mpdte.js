@@ -21,6 +21,7 @@
 
   /* ---------- small utils ---------- */
   function fmt(n) { return (n == null) ? "—" : n.toLocaleString("en-IN"); }
+  function fmtFee(n, period) { return (n == null) ? "—" : "₹" + fmt(n) + "/" + (period || "sem"); }
   function el(tag, cls, html) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -28,8 +29,8 @@
     return e;
   }
   function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
   function qsParams() {
@@ -50,6 +51,58 @@
     if (!node) return;
     node.innerHTML = msg || "";
     node.classList.toggle("is-error", !!isError);
+  }
+  var FEE_RANGES = [
+    { v: "", t: "Any fee" },
+    { v: "na", t: "Fee unavailable" },
+    { v: "lte25", t: "≤ ₹25k", min: 0, max: 25000 },
+    { v: "25-50", t: "₹25k–50k", min: 25000, max: 50000 },
+    { v: "50-75", t: "₹50k–75k", min: 50000, max: 75000 },
+    { v: "gte75", t: "₹75k+", min: 75000 },
+  ];
+  function feeAmount(fee) { return fee && fee.semester_fee_rs != null ? fee.semester_fee_rs : null; }
+  function feePeriod(fee) { return fee && fee.fee_period === "annual" ? "yr" : "sem"; }
+  function feePeriodLong(fee) { return fee && fee.fee_period === "annual" ? "per year" : "per semester"; }
+  function feeKind(fee) { return fee && fee.fee_period === "annual" ? "annual fee" : "semester-wise fee"; }
+  function fmtFeeRecord(fee) { return fmtFee(feeAmount(fee), feePeriod(fee)); }
+  function feeFor(ctx, cid, bid) {
+    var byCollege = ctx && ctx.fees && ctx.fees.colleges;
+    var c = byCollege && byCollege[cid];
+    if (!c) return null;
+    if (bid && c.branches && c.branches[bid] && c.branches[bid].latest) return c.branches[bid].latest;
+    return c.latest || null;
+  }
+  function feeInRange(fee, key) {
+    if (!key) return true;
+    var v = feeAmount(fee);
+    if (key === "na") return v == null;
+    if (v == null) return false;
+    var r = FEE_RANGES.filter(function (x) { return x.v === key; })[0];
+    if (!r) return true;
+    return (r.min == null || v >= r.min) && (r.max == null || v <= r.max);
+  }
+  function feeHtml(fee) {
+    var v = feeAmount(fee);
+    if (v == null) return "<span class='muted'>n/a</span>";
+    var raw = String(fee.raw_fee_text || "");
+    var tip = (fee.session || fee.year || "") + " " + feeKind(fee);
+    if (raw && raw !== String(v)) tip += ": " + raw;
+    if (fee.source_label || fee.source) tip += " · Source: " + (fee.source_label || fee.source);
+    var inner = "₹" + fmt(v) + "<span class='sub'>/" + feePeriod(fee) + "</span>";
+    if (fee.source_url) {
+      return "<a class='fee-v' href='" + esc(fee.source_url) + "' rel='noopener' target='_blank' title='" + esc(tip) + "'>" + inner + "</a>";
+    }
+    return "<span class='fee-v' title='" + esc(tip) + "'>" + inner + "</span>";
+  }
+  function makeFeeSelect(id) {
+    var sel = el("select"); sel.id = id || "f-fee";
+    FEE_RANGES.forEach(function (r) { sel.appendChild(new Option(r.t, r.v)); });
+    return sel;
+  }
+  function makeSortSelect(id, opts) {
+    var sel = el("select"); sel.id = id || "f-sort";
+    opts.forEach(function (o) { sel.appendChild(new Option(o.t, o.v)); });
+    return sel;
   }
 
   /* ---------- prediction engine ---------- */
@@ -170,11 +223,14 @@
       SECURING_ORDER.forEach(function (b) { var c = p.rounds[b]; if (c && (best == null || c.cl < best)) best = c.cl; });
       SECURING_ORDER.forEach(function (b) { var c = p.rounds[b]; if (c && c.cl === best) bestOpening = c.op; });
       var cl = clears[k] || { tot: 0, ok: 0 }, col = ctx.colleges[p.cid] || {};
+      var fee = feeFor(ctx, p.cid, p.bid);
+      if (!feeInRange(fee, opts.feeRange)) return;
       out.push({
         cid: p.cid, bid: p.bid, college: col.name || ("College " + p.cid), city: col.city || "—", type: col.type || "—",
         branch: ctx.branchLabel[p.bid] || p.bid, social: p.cat, gender: p.gen, domicile: p.dom, year: basis,
         bucket: asg.bucket || "out", outOfReach: asg.outOfReach, closing: asg.closing, opening: asg.opening,
         viaUpgrade: asg.viaUpgrade, seats: (ctx.intake[p.cid] || {})[p.bid] || null,
+        fee: fee,
         bestClosing: best != null ? best : Infinity, bestOpening: bestOpening, tfw: p.cat === "FW",
         cls: p.cls, quota: (p.cls && p.cls !== "X") ? p.cls : "",
         avail: (ctx.avail && ctx.avail[p.cid]) ? (ctx.avail[p.cid][p.bid] || null) : null,   // seat-availability horizon
@@ -296,6 +352,14 @@
     var colOpts = Object.keys(ctx.colleges).map(function (id) { return ctx.colleges[id]; }).filter(function (c) { return c && !c.historical; })
       .sort(function (a, b) { return (a.name || "").localeCompare(b.name || ""); }).map(function (c) { return { value: c.id, text: c.name + " — " + (c.city || "") }; });
     ms.college = MultiSelect(filtersEl, { key: "college", label: "Specific colleges (optional)", summaryNoun: "colleges", onChange: onChange, options: colOpts });
+    var fg = el("div", "f-group"), lab = el("label", null, "Fee range");
+    var feeSel = makeFeeSelect("f-fee"); lab.setAttribute("for", feeSel.id);
+    fg.appendChild(lab); fg.appendChild(feeSel); filtersEl.appendChild(fg);
+    feeSel.addEventListener("change", function () { onChange && onChange(); });
+    ms.fee = {
+      value: function () { return feeSel.value; },
+      set: function (v) { feeSel.value = FEE_RANGES.some(function (r) { return r.v === v; }) ? v : ""; },
+    };
     return ms;
   }
 
@@ -504,10 +568,10 @@
           var li = el("li"); var oor = r.outOfReach;
           li.innerHTML = "<span class='co-name'>" + coLink(r.cid, r.college) + "</span> &mdash; " + esc(r.branch) + " " + poolTag(r) +
             " <span class='co-rd sub'>" + (oor ? "stretch &middot; closed ~" + fmt(r.bestClosing) : BUCKET_SHORT[r.bucket] + " &middot; ~" + fmt(r.closing)) +
-            " &middot; " + (oor ? "Reach+" : r.band) + "</span>";
+            " &middot; " + (oor ? "Reach+" : r.band) + " &middot; " + esc(fmtFeeRecord(r.fee)) + "</span>";
           ol.appendChild(li);
           lines.push((i + 1) + ". " + r.college + " — " + r.branch + " [" + poolLabel(r) + "]  (" +
-            (oor ? "stretch" : BUCKET_SHORT[r.bucket] + ", " + r.band) + ")");
+            (oor ? "stretch" : BUCKET_SHORT[r.bucket] + ", " + r.band) + ", fee " + fmtFeeRecord(r.fee) + ")");
         });
         var stratMeta = (STRATS.filter(function (s) { return s.k === strategy; })[0] || {});
         document.getElementById("cl-count").textContent = picks.length;
@@ -551,6 +615,7 @@
       if (col === "city") return ((r.city || "") + " " + (r.type || "")).toLowerCase();
       if (col === "opening") return (r.opening == null ? (r.bestOpening == null ? 9e9 : r.bestOpening) : r.opening);
       if (col === "closing") return (r.closing == null ? r.bestClosing : r.closing);
+      if (col === "fee") return feeAmount(r.fee);
       if (col === "seats") return (r.seats && r.seats.total) || 0;
       if (col === "chance") return BAND_ORDER[r.band] || 0;
       return 0;
@@ -559,6 +624,11 @@
       if (!st || st.col === "demand") return rows;   // the recommended (demand) order
       return rows.slice().sort(function (a, b) {
         var ka = keyOf(a, st.col), kb = keyOf(b, st.col);
+        if (st.col === "fee") {
+          if (ka == null && kb == null) return 0;
+          if (ka == null) return 1;
+          if (kb == null) return -1;
+        }
         var c = (typeof ka === "string") ? ka.localeCompare(kb) : (ka - kb);
         return c * st.dir;
       });
@@ -625,6 +695,7 @@
     { k: "pool", h: "Pool" }, { k: "city", h: "City / Type" },
     { k: "opening", h: "Opening rank", cls: "num", sub: "demand" },
     { k: "closing", h: "Closing rank", cls: "num", sub: "chance" },
+    { k: "fee", h: "Fee", cls: "num", sub: "source unit" },
     { k: "seats", h: "Seats", cls: "num", sub: "(TFW)" }, { k: "chance", h: "Chance" }
   ];
   function simHead(sort) {   // sort = {col,dir} -> clickable headers; falsy -> plain (out-of-reach table)
@@ -660,6 +731,7 @@
         "<td>" + esc(r.city) + "<span class='sub'>" + esc(r.type) + "</span></td>" +
         "<td class='num'>" + fmt(opening) + " <span class='sub'>" + (opening == null ? "opening unavailable" : "first admitted") + "</span></td>" +
         "<td class='num'>" + fmt(r.closing == null ? r.bestClosing : r.closing) + " <span class='sub'>" + closeSub + "</span></td>" +
+        "<td class='num'>" + feeHtml(r.fee) + "</td>" +
         "<td class='num'>" + seats + "</td>" +
         "<td><span class='tag tag-" + r.band.toLowerCase() + "'>" + r.band + "</span></td>";
       tb.appendChild(tr);
@@ -687,14 +759,16 @@
   function initBranchRankings() {
     var sel = document.getElementById("br-branch"), typeSel = document.getElementById("br-type"),
       citySel = document.getElementById("br-city"), availSel = document.getElementById("br-avail"),
+      feeSel = document.getElementById("br-fee"),
       sortSel = document.getElementById("br-sort"), metricSel = document.getElementById("br-metric"),
       out = document.getElementById("br-list");
     if (!sel || !out) return;
-    loadAll(["colleges", "branches", "demand_stats"]).then(function (a) {
+    loadAll(["colleges", "branches", "demand_stats", "fees"]).then(function (a) {
       var cols = {}; (a[0].colleges || []).forEach(function (c) { cols[c.id] = c; });
       var blab = {}; (a[1].branches || []).forEach(function (b) { blab[b.id] = b.label; });
       var bp = (a[2] && a[2].branch_priority) || {};
       var avail = (a[2] && a[2].availability) || {};
+      var feeCtx = { fees: a[3] || null };
       AVAIL_YR = (a[2] && a[2].availability_year) || AVAIL_YR;
       var types = (a[0].types || []).slice().sort();
       var cityMap = {};
@@ -740,6 +814,7 @@
           "<td><span class='co-name'>" + esc(c.name || pair[0]) + "</span><span class='sub'>" + esc(c.city || "") + "</span>" + coCta(pair[0]) + "</td>" +
           "<td><span class='pool " + (govt ? "" : "muted") + "'>" + esc(t) + "</span></td>" +
           "<td class='num'><span class='demand-v'>" + fmt(item.val) + "</span><span class='sub'>" + others + "</span></td>" +
+          "<td class='num'>" + feeHtml(item.fee) + "</td>" +
           "<td>" + (horizonBadge((avail[pair[0]] || {})[bid]) || "<span class='muted sub'>&mdash;</span>") + "</td></tr>";
       }
       var CAP = 50;
@@ -752,6 +827,7 @@
       function render(bid, expanded) {
         var all = bp[bid] || [], type = typeSel ? typeSel.value : "", city = citySel ? citySel.value : "",
           avh = availSel ? availSel.value : "", sort = sortSel ? sortSel.value : "",
+          feeRange = feeSel ? feeSel.value : "",
           M = METRIC[metricSel ? metricSel.value : ""] || METRIC[""], mi = M.idx;
         // overall demand `rank` = position among ADMITTABLE (2026-27 intake) colleges, re-ordered by the
         // chosen metric (lower = better). Historical/defunct colleges (no current intake) are dropped BEFORE
@@ -762,10 +838,19 @@
         var lst = [];
         ordered.forEach(function (pair, i) {
           var c = cols[pair[0]];
+          var fee = feeFor(feeCtx, pair[0], bid);
           if ((!type || c.type === type) && (!city || c.city === city) &&
-              (!avh || ((avail[pair[0]] || {})[bid] || {}).h === avh)) lst.push({ pair: pair, rank: i + 1, val: pair[mi] });
+              (!avh || ((avail[pair[0]] || {})[bid] || {}).h === avh) &&
+              feeInRange(fee, feeRange)) lst.push({ pair: pair, rank: i + 1, val: pair[mi], fee: fee });
         });
         if (sort === "demand-desc") lst.reverse();                                  // least sought-after first
+        else if (sort === "fee-asc" || sort === "fee-desc") lst.sort(function (a, b) {
+          var av = feeAmount(a.fee), bv = feeAmount(b.fee);
+          if (av == null && bv == null) return 0;
+          if (av == null) return 1;
+          if (bv == null) return -1;
+          return sort === "fee-asc" ? av - bv : bv - av;
+        });
         else if (sort === "name") lst.sort(function (a, b) {
           return (cols[a.pair[0]].name || "").localeCompare(cols[b.pair[0]].name || "");
         });
@@ -777,6 +862,10 @@
         var crit = [];
         if (locBits.length) crit.push(locBits.join(" in "));
         if (avh && AVAIL_LABEL[avh]) crit.push("<strong>" + esc(AVAIL_LABEL[avh].t) + "</strong> seats");   // surface the avail filter in the count note
+        if (feeRange) {
+          var fr = FEE_RANGES.filter(function (r) { return r.v === feeRange; })[0];
+          if (fr) crit.push("<strong>" + esc(fr.t) + "</strong>");
+        }
         var filterNote = crit.length ? " Filtered to " + crit.join(", ") + ": <strong>" + matchTotal + "</strong> match." : "";
         out.innerHTML =
           "<p class='muted'>Colleges offering <strong>" + esc(blab[bid] || bid) + "</strong>, ranked by the open/general (UR) " +
@@ -785,6 +874,7 @@
           filterNote + (capped ? " <strong>Showing " + CAP + " of " + matchTotal + ".</strong>" : "") + "</p>" +
           (matchTotal ? "<div class='table-wrap'><table class='results'><thead><tr><th class='num'>#</th><th>College</th>" +
           "<th>Type</th><th class='num'>Typical demand<br><span class='sub'>" + M.sub + "</span></th>" +
+          "<th class='num'>Fee<br><span class='sub'>source unit</span></th>" +
           "<th>Seats last to<br><span class='sub'>" + AVAIL_YR + "</span></th></tr></thead><tbody>" +
           rows + "</tbody></table></div>" : "<p class='empty'>No colleges match this branch and filters.</p>") +
           (matchTotal > CAP ? "<div class='br-more-wrap'><button type='button' class='br-more'>" +
@@ -792,16 +882,17 @@
         var mb = out.querySelector(".br-more");
         if (mb) mb.addEventListener("click", function () { render(bid, !expanded); });
       }
-      function syncUrl() { setParams({ b: sel.value, type: typeSel && typeSel.value, city: citySel && citySel.value, avail: availSel && availSel.value, sort: sortSel && sortSel.value, metric: metricSel && metricSel.value }); }
+      function syncUrl() { setParams({ b: sel.value, type: typeSel && typeSel.value, city: citySel && citySel.value, avail: availSel && availSel.value, fee: feeSel && feeSel.value, sort: sortSel && sortSel.value, metric: metricSel && metricSel.value }); }
       var params = qsParams(), want = params.b;
       if (want && bids.indexOf(want) > -1) sel.value = want; else if (bids.indexOf("cse") > -1) sel.value = "cse";
       if (typeSel && params.type && types.indexOf(params.type) > -1) typeSel.value = params.type;
       if (citySel && params.city && cities.indexOf(params.city) > -1) citySel.value = params.city;
       if (availSel && params.avail && AVAIL_LABEL[params.avail]) availSel.value = params.avail;
+      if (feeSel && params.fee && FEE_RANGES.some(function (r) { return r.v === params.fee; })) feeSel.value = params.fee;
       if (sortSel && params.sort) sortSel.value = params.sort;
       if (metricSel && (params.metric === "open" || params.metric === "close")) metricSel.value = params.metric;
       render(sel.value);
-      [sel, typeSel, citySel, availSel, sortSel, metricSel].forEach(function (s) {
+      [sel, typeSel, citySel, availSel, feeSel, sortSel, metricSel].forEach(function (s) {
         if (s) s.addEventListener("change", function () { render(sel.value); syncUrl(); });
       });
     }).catch(function (e) { showError(out, e); });
@@ -813,11 +904,12 @@
     var filtersBox = document.getElementById("filters");
     var branchEl = document.getElementById("branch-pick");
     var formMsg = document.getElementById("form-msg");
-    loadAll(["colleges", "branches", "cities", "intake", "config", "predictor_jee", "demand_stats"]).then(function (a) {
+    loadAll(["colleges", "branches", "cities", "intake", "config", "predictor_jee", "demand_stats", "fees"]).then(function (a) {
       var ctx = buildContext(a[0], a[1], a[2], a[3], a[4]);
       ctx.pref = prefFromBranchPriority(a[6] && a[6].branch_priority);   // (college|branch) -> within-branch demand rank
       ctx.prefScore = prefScoreFromBranchPriority(a[6] && a[6].branch_priority);   // (college|branch) -> comparable demand score
       ctx.avail = (a[6] && a[6].availability) || {};                     // (college -> branch -> availability horizon)
+      ctx.fees = a[7] || null;
       AVAIL_YR = (a[6] && a[6].availability_year) || AVAIL_YR;
       var pred = a[5]; pred._roundMap = JEE_ROUND_MAP;
       var initialParams = qsParams();
@@ -847,11 +939,12 @@
           domicile: document.getElementById("in-dom").value, tfw: document.getElementById("in-tfw").checked,
           quota: document.getElementById("in-quota").value,
           citySet: ms.city.values(), branchSet: ms.branch.values(), typeSet: ms.type.values(), collegeSet: ms.college.values(),
-          strategy: curStrat, onStrat: setStrat, sort: curSort, onSort: setSort,
+          feeRange: ms.fee.value(), strategy: curStrat, onStrat: setStrat, sort: curSort, onSort: setSort,
         };
         renderSimulation(simulate(ctx, pred, opts), results, opts);
         setParams({ rank: rank, cat: opts.social, gender: opts.gender, dom: opts.domicile, tfw: opts.tfw ? 1 : "", quota: opts.quota,
           city: Array.from(opts.citySet).join(","), branch: Array.from(opts.branchSet).join(","), type: Array.from(opts.typeSet).join(","), college: Array.from(opts.collegeSet).join(","),
+          fee: opts.feeRange,
           strat: keepStratParam || curStrat !== "balanced" ? curStrat : "", sort: keepSortParam || curSort !== "demand" ? curSort : "" });
       }
       ms = buildMultiFilters(ctx, branchEl, filtersBox, run);
@@ -861,6 +954,7 @@
       if (p.tfw) document.getElementById("in-tfw").checked = true;
       lockTfwByDomicile(document.getElementById("in-dom"), document.getElementById("in-tfw"));  // TFW is MP-domicile only
       ms.city.set(split(p.city)); ms.branch.set(split(p.branch)); ms.type.set(split(p.type)); ms.college.set(split(p.college));
+      ms.fee.set(p.fee);
       form.addEventListener("submit", run);
       form.addEventListener("change", function (e) { if (e.target.closest && e.target.closest(".ms")) return; run(); });
       if (p.rank) run();
@@ -914,12 +1008,15 @@
       var g = groups[k];
       var col = ctx.colleges[g._cid] || {};
       var seats = (ctx.intake[g._cid] || {})[g._bid] || null;
+      var fee = feeFor(ctx, g._cid, g._bid);
+      if (!feeInRange(fee, opts.feeRange)) return;
       var b = band(opts.rank, g._cl);
       out.push({
         cid: g._cid,
         college: col.name || ("College " + g._cid), city: col.city || "—",
         type: col.type || "—", branch: ctx.branchLabel[g._bid] || g._bid,
         closing: g._cl, opening: g._op, year: g._yr, round: g._rd,
+        fee: fee,
         tfw: g._social === "FW",
         pool: (g._social === "FW") ? "tfw"
           : ((g._social === opts.social && opts.social !== "UR") ? "reserved" : "general"),
@@ -972,6 +1069,18 @@
     type.appendChild(new Option("Any institute type", ""));
     (ctx.types || []).forEach(function (t) { type.appendChild(new Option(t, t)); });
     group("Institute type", type);
+    var fee = makeFeeSelect("f-fee");
+    group("Fee range", fee);
+    var sort = null;
+    if (opts.sort) {
+      sort = makeSortSelect("f-sort", opts.sortOptions || [
+        { v: "name", t: "College name (A–Z)" },
+        { v: "fee-asc", t: "Fee: low to high" },
+        { v: "fee-desc", t: "Fee: high to low" },
+        { v: "seats-desc", t: "Seats: high to low" },
+      ]);
+      group("Sort", sort);
+    }
     // Domicile (only when opts.domicile) — changes which seats are open to the student (rulebook).
     var dom = null;
     if (opts.domicile) {
@@ -981,13 +1090,14 @@
       group("Domicile", dom);
     }
     // Tuition Fee Waiver (label differs per page: predictor = "include", explorer = "only")
-    var fwWrap = el("label", "f-check");
+    var fwWrap = el("label", "f-check f-check-tfw");
     var fw = el("input"); fw.type = "checkbox"; fw.id = "f-fw";
     fwWrap.appendChild(fw);
-    fwWrap.appendChild(document.createTextNode(" " + (opts.fwLabel || "Tuition Fee Waiver (TFW) seats")));
-    var fwGroup = el("div", "f-group f-group-check"); fwGroup.appendChild(fwWrap);
+    fwWrap.appendChild(el("span", "f-check-text", opts.fwLabelHtml || esc(opts.fwLabel || "Tuition Fee Waiver (TFW) seats")));
+    fwWrap.appendChild(el("span", "pool pool-tfw", "TFW"));
+    var fwGroup = el("div", "f-group f-group-check f-group-tfw"); fwGroup.appendChild(fwWrap);
     container.appendChild(fwGroup);
-    return { city: city, branch: branch, type: type, fw: fw, search: search, dom: dom };
+    return { city: city, branch: branch, type: type, fee: fee, sort: sort, fw: fw, search: search, dom: dom };
   }
 
   // Rulebook: a non-MP-domicile student can take the general/UR seats at PRIVATE (self-financing)
@@ -1118,10 +1228,12 @@
         li.innerHTML = "<span class='co-name'>" + coLink(r.cid, r.college) + "</span> &mdash; " + esc(r.branch) +
           " <span class='pool muted'>" + esc(qeChoicePool(r)) + "</span>" +
           " <span class='co-rd sub'>" + (r.band === "Unreachable" ? "stretch" : r.band) +
-          " &middot; opens ~" + fmt(r.opening) + " &middot; closes ~" + fmt(r.closing) + "</span>";
+          " &middot; opens ~" + fmt(r.opening) + " &middot; closes ~" + fmt(r.closing) +
+          " &middot; " + esc(fmtFeeRecord(r.fee)) + "</span>";
         ol.appendChild(li);
         lines.push((i + 1) + ". " + r.college + " — " + r.branch + " [" + qeChoicePool(r) + "]  (" +
-          (r.band === "Unreachable" ? "stretch" : r.band) + ", opens ~" + fmt(r.opening) + ", closes ~" + fmt(r.closing) + ")");
+          (r.band === "Unreachable" ? "stretch" : r.band) + ", opens ~" + fmt(r.opening) +
+          ", closes ~" + fmt(r.closing) + ", fee " + fmtFeeRecord(r.fee) + ")");
       });
       countEl.textContent = picks.length;
       sugSummary.innerHTML = "Choice-filling list <span class='round-count'>" + picks.length + "</span> <span class='sub-inline'>" + esc(stratMeta.t || strategy) + "</span>";
@@ -1149,6 +1261,7 @@
     { k: "branch", h: "Branch" }, { k: "type", h: "Type" },
     { k: "opening", h: "Opening rank", cls: "num", sub: "demand" },
     { k: "closing", h: "Closing rank", cls: "num", sub: "chance" },
+    { k: "fee", h: "Fee", cls: "num", sub: "source unit" },
     { k: "seats", h: "Seats", cls: "num", sub: "(TFW)" }, { k: "chance", h: "Chance" }
   ];
   var RES_KEYS = {}; RES_COLS.forEach(function (c) { RES_KEYS[c.k] = 1; });
@@ -1165,15 +1278,21 @@
   function resKey(r, col) {
     if (col === "opening") return (r.opening == null ? 9e9 : r.opening);
     if (col === "closing") return (r.closing == null ? 9e9 : r.closing);
+    if (col === "fee") return feeAmount(r.fee);
     if (col === "seats") return (r.seats && r.seats.total) || 0;
     if (col === "chance") return RES_BAND[r.band] || 0;
     return (r[col] || "").toString().toLowerCase();   // college / city / branch / type
   }
   function resSort(rows, st) {
     if (!st || st.col === "rec") return rows;          // "rec" = the recommended order (band, then margin)
-    return rows.slice().sort(function (a, b) {
-      var ka = resKey(a, st.col), kb = resKey(b, st.col);
-      var c = (typeof ka === "string") ? ka.localeCompare(kb) : (ka - kb);
+      return rows.slice().sort(function (a, b) {
+        var ka = resKey(a, st.col), kb = resKey(b, st.col);
+        if (st.col === "fee") {
+          if (ka == null && kb == null) return 0;
+          if (ka == null) return 1;
+          if (kb == null) return -1;
+        }
+        var c = (typeof ka === "string") ? ka.localeCompare(kb) : (ka - kb);
       return c * st.dir;
     });
   }
@@ -1210,6 +1329,7 @@
         "<td>" + esc(r.type) + "</td>" +
         "<td class='num'>" + fmt(r.opening) + " <span class='sub'>first admitted</span></td>" +
         "<td class='num'>" + fmt(r.closing) + " <span class='sub'>" + r.year + " " + esc(r.round) + "</span></td>" +
+        "<td class='num'>" + feeHtml(r.fee) + "</td>" +
         "<td class='num'>" + seats + "</td>" +
         "<td>" + bandTag(r.band) + "</td>";
       tb.appendChild(tr);
@@ -1263,7 +1383,7 @@
     return {
       colleges: byId, branchLabel: label, branches: branches.branches,
       cities: cities.cities, intake: intake.seats, config: config,
-      types: colleges.types || [],
+      types: colleges.types || [], fees: null,
     };
   }
 
@@ -1274,11 +1394,14 @@
     var filtersBox = document.getElementById("filters");
     var formMsg = document.getElementById("form-msg");
     var assets = ["colleges", "branches", "cities", "intake", "config",
-      mode === "qe" ? "predictor_qe" : "predictor_jee"];
+      mode === "qe" ? "predictor_qe" : "predictor_jee", "fees"];
     loadAll(assets).then(function (a) {
       var ctx = buildContext(a[0], a[1], a[2], a[3], a[4]);
       var pred = a[5];
-      var fc = buildFilters(ctx, filtersBox, { fwLabel: "Include Tuition Fee Waiver (TFW) seats (family income ≤ ₹8 L)" });
+      ctx.fees = a[6] || null;
+      var fc = buildFilters(ctx, filtersBox, {
+        fwLabelHtml: "Include <strong>Tuition Fee Waiver (TFW)</strong> seats (family income ≤ ₹8 L)"
+      });
       // QE: populate year selector with available years; show banner
       if (mode === "qe") {
         var ysel = document.getElementById("f-year");
@@ -1299,6 +1422,7 @@
       if (p.city) fc.city.value = p.city;
       if (p.branch) fc.branch.value = p.branch;
       if (p.type) fc.type.value = p.type;
+      if (p.fee) fc.fee.value = p.fee;
       if (p.tfw) fc.fw.checked = true;
       lockTfwByDomicile(document.getElementById("in-dom"), fc.fw);   // TFW is MP-domicile only
 
@@ -1309,11 +1433,12 @@
         var opts = {
           social: social, gender: gEl ? gEl.value : "M", domicile: dEl ? dEl.value : "other",
           tfw: fc.fw.checked, city: fc.city.value || null, type: fc.type.value || null,
+          feeRange: fc.fee.value || "",
           branchSet: fc.branch.value ? (function () { var s = {}; s[fc.branch.value] = 1; return s; })() : null,
           sort: curSort, onSort: setSort,
         };
         var stateP = { cat: social, gender: opts.gender, dom: opts.domicile, tfw: opts.tfw ? 1 : "",
-          city: fc.city.value, branch: fc.branch.value, type: fc.type.value,
+          city: fc.city.value, branch: fc.branch.value, type: fc.type.value, fee: opts.feeRange,
           sort: curSort === "rec" ? "" : curSort };
         if (mode === "qe") {
           var pctEl = document.getElementById("in-pct");
@@ -1370,15 +1495,18 @@
   function initExplorer() {
     var results = document.getElementById("results");
     var filtersBox = document.getElementById("filters");
-    loadAll(["colleges", "branches", "cities", "intake"]).then(function (a) {
+    loadAll(["colleges", "branches", "cities", "intake", "fees"]).then(function (a) {
       var ctx = buildContext(a[0], a[1], a[2], a[3], {});
-      var fc = buildFilters(ctx, filtersBox, { fwLabel: "Only colleges offering TFW (fee-waiver) seats",
-        search: true, searchPlaceholder: "Type a college name or city…", domicile: true });
+      ctx.fees = a[4] || null;
+      var fc = buildFilters(ctx, filtersBox, {
+        fwLabelHtml: "Only colleges offering <strong>Tuition Fee Waiver (TFW)</strong> seats",
+        search: true, searchPlaceholder: "Type a college name or city…", domicile: true, sort: true });
       lockTfwByDomicile(fc.dom, fc.fw);   // TFW is MP-domicile only — disable the filter for non-MP
       function run() {
         var city = fc.city.value, type = fc.type.value, bid = fc.branch.value;
         var dom = fc.dom ? fc.dom.value : "mp";
         var fwOnly = fc.fw.checked && dom !== "other";   // non-MP students can't get TFW seats
+        var feeRange = fc.fee.value || "", sort = fc.sort ? fc.sort.value : "name";
         var q = (fc.search && fc.search.value || "").trim().toLowerCase();
         var list = a[0].colleges.filter(function (c) {
           if (c.historical) return false;           // explorer shows current 2026-27 colleges only
@@ -1387,6 +1515,7 @@
           if (type && c.type !== type) return false;
           var seats = ctx.intake[c.id] || {};
           if (bid && !seats[bid]) return false;
+          if (!feeInRange(feeFor(ctx, c.id, bid || null), feeRange)) return false;
           if (fwOnly) {
             var anyTfw = Object.keys(seats).some(function (b) { return seats[b].tfw > 0; });
             if (!anyTfw) return false;
@@ -1404,11 +1533,26 @@
             "(<strong>" + openN + "</strong> of " + list.length + " are private/self-financing). Verify with DTE."));
         }
         results.appendChild(el("p", "result-summary", "<strong>" + list.length + "</strong> colleges"));
-        list.sort(function (x, y) { return (x.name || "").localeCompare(y.name || ""); });
+        list.sort(function (x, y) {
+          if (sort === "fee-asc" || sort === "fee-desc") {
+            var xf = feeAmount(feeFor(ctx, x.id, bid || null)), yf = feeAmount(feeFor(ctx, y.id, bid || null));
+            if (xf == null && yf == null) return 0;
+            if (xf == null) return 1;
+            if (yf == null) return -1;
+            return sort === "fee-asc" ? xf - yf : yf - xf;
+          }
+          if (sort === "seats-desc") {
+            var xs = Object.keys(ctx.intake[x.id] || {}).reduce(function (s, b) { return s + ((ctx.intake[x.id] || {})[b].total || 0); }, 0);
+            var ys = Object.keys(ctx.intake[y.id] || {}).reduce(function (s, b) { return s + ((ctx.intake[y.id] || {})[b].total || 0); }, 0);
+            return ys - xs || (x.name || "").localeCompare(y.name || "");
+          }
+          return (x.name || "").localeCompare(y.name || "");
+        });
         list.forEach(function (c) {
           var seats = ctx.intake[c.id] || {};
           var card = el("div", "college-card");
           var totalSeats = Object.keys(seats).reduce(function (s, b) { return s + (seats[b].total || 0); }, 0);
+          var fee = feeFor(ctx, c.id, bid || null);
           var branchChips = Object.keys(seats).map(function (b) {
             var s = seats[b];
             return "<span class='chip'>" + esc(ctx.branchLabel[b] || b) + " <em>" + s.total +
@@ -1424,7 +1568,9 @@
             : "";
           var href = BASE + "/college/?id=" + encodeURIComponent(c.id);
           card.innerHTML = "<h3><a href='" + href + "'>" + esc(c.name) + "</a></h3>" +
-            "<p class='muted'>" + meta + "</p>" + access + "<div class='chips'>" + branchChips + "</div>";
+            "<p class='muted'>" + meta + "</p>" + access +
+            "<p class='co-fee'><strong>Fee:</strong> " + feeHtml(fee) + "</p>" +
+            "<div class='chips'>" + branchChips + "</div>";
           card.style.cursor = "pointer";   // whole card opens the college page (title already links too)
           card.addEventListener("click", function (e) { if (!e.target.closest("a")) location.href = href; });
           results.appendChild(card);
@@ -1472,10 +1618,10 @@
         "/college-explorer/'>Browse colleges</a>.</p>";
       return;
     }
-    Promise.all([load("branches"), load("history/" + id)]).then(function (a) {
+    Promise.all([load("branches"), load("history/" + id), load("fees").catch(function () { return null; })]).then(function (a) {
       var branchLabel = {};
       a[0].branches.forEach(function (b) { branchLabel[b.id] = b.label; });
-      var H = a[1], rows = H.rows, ix = {};
+      var H = a[1], feeData = a[2], rows = H.rows, ix = {};
       H.cols.forEach(function (c, i) { ix[c] = i; });
 
       document.title = H.name + " · cut-off history";
@@ -1488,6 +1634,83 @@
         H.years[H.years.length - 1] + ". <strong>JEE</strong> rounds use the JEE-Main rank; " +
         "<strong>Qualifying-Exam</strong> rounds use the 12th-% merit rank &mdash; different scales, " +
         "never compare a rank across the two.</p>";
+
+      var feeCol = feeData && feeData.colleges && feeData.colleges[id];
+      var feeBox = el("details", "fee-history");
+      if (feeCol) {
+        var frows = [], seenFee = {};
+        function addFeeRecord(r, bid) {
+          var key = r.year + "|" + (bid || "") + "|" + r.semester_fee_rs + "|" + (r.raw_fee_text || "");
+          if (seenFee[key]) return;
+          seenFee[key] = 1;
+          frows.push({
+            year: r.year, session: r.session, bid: bid || r.branch_id || "",
+            fee: r.semester_fee_rs, raw: r.raw_fee_text || "",
+            period: r.fee_period || "",
+            source: r.source || "", source_label: r.source_label || r.source || "", source_url: r.source_url || "",
+          });
+        }
+        Object.keys(feeCol.years || {}).forEach(function (y) {
+          (feeCol.years[y] || []).forEach(function (r) { addFeeRecord(r, ""); });
+        });
+        Object.keys(feeCol.branches || {}).forEach(function (bid) {
+          var bdat = feeCol.branches[bid] || {};
+          Object.keys(bdat.years || {}).forEach(function (y) {
+            (bdat.years[y] || []).forEach(function (r) { addFeeRecord(r, bid); });
+          });
+        });
+        frows.sort(function (a, b) {
+          return (b.year - a.year) || (a.bid || "").localeCompare(b.bid || "");
+        });
+        var latestSummaryRecord = feeCol.latest || null;
+        if (!latestSummaryRecord && frows.length) latestSummaryRecord = {
+          semester_fee_rs: frows[0].fee,
+          fee_period: frows[0].period,
+        };
+        var seenFeeYears = {}, yearOptions = "<option value=''>All sessions</option>";
+        frows.forEach(function (r) {
+          var y = String(r.year || "");
+          if (!y || seenFeeYears[y]) return;
+          seenFeeYears[y] = 1;
+          yearOptions += "<option value='" + esc(y) + "'>" + esc(r.session || y) + "</option>";
+        });
+        var feeRows = frows.map(function (r) {
+          var rawNote = String(r.raw || "");
+          var plain = rawNote === String(r.fee) ? "<span class='muted'>—</span>" : esc(rawNote);
+          var source = r.source_url
+            ? "<a href='" + esc(r.source_url) + "' rel='noopener' target='_blank'>" + esc(r.source_label || r.source || "Source") + "</a>"
+            : esc(r.source_label || r.source || "—");
+          return "<tr data-fee-year='" + esc(r.year) + "'><td class='num'>" + esc(r.session || r.year) + "</td>" +
+            "<td>" + (r.bid ? esc(branchLabel[r.bid] || r.bid) : "College-level / default") + "</td>" +
+            "<td class='num'>₹" + fmt(r.fee) + "<span class='sub'>" + feePeriodLong({ fee_period: r.period }) + "</span></td>" +
+            "<td>" + plain + "</td><td>" + source + "</td></tr>";
+        }).join("");
+        feeBox.innerHTML = "<summary><span>Fee history</span><span class='fee-summary'>Latest " +
+          esc(fmtFeeRecord(latestSummaryRecord)) + "</span></summary>" +
+          "<div class='fee-history-panel'><p class='muted'>Accepted fee matches, shown in the source unit.</p>" +
+          "<label class='fee-year-filter'>Session <select id='fee-year-filter'>" + yearOptions + "</select></label>" +
+          "<div class='table-wrap'><table class='results fee-table'><thead><tr><th class='num'>Session</th><th>Branch</th>" +
+          "<th class='num'>Fee</th><th>Fee note</th><th>Source</th></tr></thead><tbody>" + feeRows + "</tbody></table></div>" +
+          "<p class='empty fee-empty' hidden>No fee records for the selected session.</p></div>";
+        var feeYear = feeBox.querySelector("#fee-year-filter");
+        var feeEmpty = feeBox.querySelector(".fee-empty");
+        function filterFeeHistory() {
+          var y = feeYear ? feeYear.value : "", shown = 0;
+          Array.prototype.forEach.call(feeBox.querySelectorAll("tbody tr"), function (tr) {
+            var ok = !y || tr.getAttribute("data-fee-year") === y;
+            tr.hidden = !ok;
+            if (ok) shown++;
+          });
+          if (feeEmpty) feeEmpty.hidden = shown > 0;
+        }
+        if (feeYear) feeYear.addEventListener("change", filterFeeHistory);
+        filterFeeHistory();
+      } else {
+        feeBox.innerHTML = "<summary><span>Fee history</span><span class='fee-summary'>No fee match</span></summary>" +
+          "<div class='fee-history-panel'><p class='empty'>No accepted fee match yet for this college. " +
+          "Check the review CSV for doubtful matches before using a fee publicly.</p></div>";
+      }
+      head.appendChild(feeBox);
 
       var parsed = rows.map(function (r) { return parsePool(r[ix.pool]); });
       var branches = uniqSort(rows.map(function (r) { return r[ix.b]; }));
