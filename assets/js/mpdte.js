@@ -1400,7 +1400,7 @@
       var pred = a[5];
       ctx.fees = a[6] || null;
       var fc = buildFilters(ctx, filtersBox, {
-        fwLabelHtml: "Include <strong>Tuition Fee Waiver (TFW)</strong> seats (family income ≤ ₹8 L)"
+        fwLabelHtml: "Include Tuition Fee Waiver (TFW) seats (family income ≤ ₹8 L)"
       });
       // QE: populate year selector with available years; show banner
       if (mode === "qe") {
@@ -1499,7 +1499,7 @@
       var ctx = buildContext(a[0], a[1], a[2], a[3], {});
       ctx.fees = a[4] || null;
       var fc = buildFilters(ctx, filtersBox, {
-        fwLabelHtml: "Only colleges offering <strong>Tuition Fee Waiver (TFW)</strong> seats",
+        fwLabelHtml: "Only colleges offering Tuition Fee Waiver (TFW) seats",
         search: true, searchPlaceholder: "Type a college name or city…", domicile: true, sort: true });
       lockTfwByDomicile(fc.dom, fc.fw);   // TFW is MP-domicile only — disable the filter for non-MP
       function run() {
