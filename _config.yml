@@ -16,6 +16,7 @@ sass:
 exclude:
   - DTE_CutOff_BTech/
   - DTE_Intake_BTech/
+  - AFRC_Fees/
   - scripts/
   - __pycache__/
   - vendor/
@@ -28,6 +29,7 @@ exclude:
   - "*.py"
   - "*.sh"
   - "*.md"
+  - fees.xml
   # local-only / PII source dirs — never publish (defense-in-depth; they're also gitignored,
   # so absent from the CI build, but this stops Jekyll copying them into _site if ever present locally)
   - MeritLists/
