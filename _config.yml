@@ -4,7 +4,7 @@ description: >-
   12th-class percentage, and see which branches and colleges are most in demand.
   Built from official 2017-2025 counselling cut-offs and the 2026-27 seat matrix.
 baseurl: ""        # for a GitHub project page set to "/<repo-name>"
-url: ""
+url: "https://mp-dte-btech-predictor.vercel.app"
 lang: en
 
 markdown: kramdown

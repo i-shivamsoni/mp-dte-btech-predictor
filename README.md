@@ -57,7 +57,7 @@ builds leave it out.
 
 Issues and pull requests are welcome — see **[CONTRIBUTING.md](CONTRIBUTING.md)** for the full
 guide (it covers humans and AI agents, the data pipeline, guardrails, and the verification suite),
-or the [contributing page](https://i-shivamsoni.github.io/mp-dte-btech-predictor/open-source/) for the short version.
+or the [contributing page](https://mp-dte-btech-predictor.vercel.app/open-source/) for the short version.
 
 **Report a bug or data error — open an issue:**
 
